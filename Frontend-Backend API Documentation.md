@@ -32,9 +32,9 @@ This document describes the REST API endpoints and WebSocket connections that fa
 - No request body required.
 
 **Response**:
-- **Content-Type**: `application/json`
+- Content-Type: `application/json`
 
-**Response Body**:
+- Response Body:
 ```json
 {
   "databases": [
@@ -60,7 +60,7 @@ No request body required.
 **Response:**
 - Content-Type: application/json
 
-**Response Body:**
+- Response Body:
 ```json
 {
   "tables": [
@@ -88,9 +88,9 @@ No request body required.
 - db_name (string): Name of the database (e.g., MySQL, MongoDB).
 
 **Request:**
-Content-Type: application/json
+- Content-Type: application/json
 
-**Request Body:**
+- Request Body:
 ```json
 {
   "query": "SELECT * FROM products WHERE category = 'Tea';"
@@ -100,7 +100,7 @@ Content-Type: application/json
 **Response:**
 - Content-Type: application/json
 
-**Response Body:**
+- Response Body:
 ```json
 {
   "results": [
@@ -122,9 +122,9 @@ Content-Type: application/json
 - db_name (string): Name of the database (e.g., MySQL, MongoDB).
 
 **Request:**
-No request body required.
+- Content-Type: application/json
 
-**Request Body:**
+- Request Body:
 ```json
 {
   "construct": "group by"
@@ -134,7 +134,7 @@ No request body required.
 **Response:**
 - Content-Type: application/json
 
-**Response Body:**
+- Response Body:
 ```json
 {
   "query": "SELECT category, COUNT(*) FROM products GROUP BY category;",
@@ -153,12 +153,22 @@ No request body required.
 - db_name (string): Name of the database (e.g., MySQL, MongoDB).
 
 **Request:**
-No request body required.
+- Content-Type: application/json
+
+- Request Body:
+```json
+{
+  "product": {
+    "name": "Black Tea",
+    "category": "Tea",
+    "price": 9.99
+  }
+}
+```
 
 **Response:**
 - Content-Type: application/json
-
-**Response Body:**
+- Response Body:
 ```json
 {
   "message": "Product created successfully.",
@@ -179,8 +189,7 @@ No request body required.
 
 **Request:**
 - Content-Type: application/json
-
-**Request Body**:
+- Request Body:
 ```json
 {
   "product": {
@@ -192,7 +201,7 @@ No request body required.
 **Response:**
 - Content-Type: application/json
 
-**Response Body:**
+- Response Body:
 ```json
 {
   "message": "Product updated successfully."
@@ -216,7 +225,7 @@ No request body required.
 **Response:**
 - Content-Type: application/json
 
-**Response Body:**
+- Response Body:
 ```json
 {
   "message": "Product deleted successfully."
