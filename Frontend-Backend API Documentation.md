@@ -274,4 +274,6 @@ For any errors, the following response format will be returned:
 
 | Error Code | Description |
 | --- | --- |
-| 400 | Bad Request
+| 400 | Bad Request – The request was invalid or cannot be served. |
+| 404 | Not Found – The requested resource could not be found. |
+| 500 | Internal Server Error – An error occurred on the server side. |
