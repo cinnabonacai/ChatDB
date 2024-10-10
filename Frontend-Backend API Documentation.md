@@ -1,36 +1,21 @@
 # Frontend-Backend API Documentation
+
 This document describes the REST API endpoints and WebSocket connections that facilitate the interaction between the frontend and backend systems for ChatDB, a project designed to allow users to query databases using natural language.
-
-## 1. API Overview
-| Endpoint   | Method | Description   |
-|--------|------|--------|
-| /databases   | GET   | Retrieve the list of available databases (SQL and NoSQL) for the user to query. |
-| /databases/{db_type}/{db_name}/schema   | GET   | Fetch the schema (tables/collections and their attributes) for the selected database. |
-| /databases/{db_type}/{db_name}/query   | POST   | Execute a query on the selected database and return the results. |
-| /databases/{db_type}/{db_name}/sample-query   | POST   | Generate a sample query with a specified language construct (e.g., group by). |
-| /databases/{db_type}/{db_name}/create   | POST   | Create a new product in the database and sync it with Shopify. |
-| /databases/{db_type}/{db_name}/update/{product_id}   | PATCH   | Update an existing product and sync with Shopify. |
-| /databases/{db_type}/{db_name}/delete/{product_id}   | DELETE   | Delete a product from the database and Shopify. |
-| /ws/chat   | WebSocket	   | Real-time interaction for user queries and responses. |
-
-# **Frontend-Backend API Documentation**
-
-This document describes the REST API endpoints and WebSocket connections that facilitate the interaction between the frontend and backend systems for ChatDB.
 
 ---
 
 ## **1. API Overview**
 
-| Endpoint | Method | Description | Authentication |
+| Endpoint | Method | Description |
 | --- | --- | --- | --- |
-| `/databases` | GET | Retrieve the list of available databases (SQL and NoSQL) for the user to query. | No |
-| `/databases/{db_type}/{db_name}/schema` | GET | Fetch the schema (tables/collections and their attributes) for the selected database. | No |
-| `/databases/{db_type}/{db_name}/query` | POST | Execute a query on the selected database and return the results. | No |
-| `/databases/{db_type}/{db_name}/sample-query` | POST | Generate a sample query with a specified language construct (e.g., `group by`). | No |
-| `/databases/{db_type}/{db_name}/create` | POST | Create a new product in the database and sync it with Shopify. | No |
-| `/databases/{db_type}/{db_name}/update/{product_id}` | PATCH | Update an existing product and sync with Shopify. | No |
-| `/databases/{db_type}/{db_name}/delete/{product_id}` | DELETE | Delete a product from the database and Shopify. | No |
-| `/ws/chat` | WebSocket | Real-time interaction for user queries and responses. | No |
+| `/databases` | GET | Retrieve the list of available databases (SQL and NoSQL) for the user to query. |
+| `/databases/{db_type}/{db_name}/schema` | GET | Fetch the schema (tables/collections and their attributes) for the selected database. |
+| `/databases/{db_type}/{db_name}/query` | POST | Execute a query on the selected database and return the results. |
+| `/databases/{db_type}/{db_name}/sample-query` | POST | Generate a sample query with a specified language construct (e.g., `group by`).  |
+| `/databases/{db_type}/{db_name}/create` | POST | Create a new product in the database and sync it with Shopify.  |
+| `/databases/{db_type}/{db_name}/update/{product_id}` | PATCH | Update an existing product and sync with Shopify. |
+| `/databases/{db_type}/{db_name}/delete/{product_id}` | DELETE | Delete a product from the database and Shopify.  |
+| `/ws/chat` | WebSocket | Real-time interaction for user queries and responses.  |
 
 
 ---
