@@ -7,7 +7,7 @@ This document describes the REST API endpoints and WebSocket connections that fa
 ## **1. API Overview**
 
 | Endpoint | Method | Description |
-| --- | --- | --- | --- |
+| --- | --- | --- |
 | `/databases` | GET | Retrieve the list of available databases (SQL and NoSQL) for the user to query. |
 | `/databases/{db_type}/{db_name}/schema` | GET | Fetch the schema (tables/collections and their attributes) for the selected database. |
 | `/databases/{db_type}/{db_name}/query` | POST | Execute a query on the selected database and return the results. |
