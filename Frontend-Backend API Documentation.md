@@ -44,8 +44,6 @@ This document describes the REST API endpoints and WebSocket connections that fa
 }
 ```
 
----
-
 ### **2.2 Get Database Schema**
 
 #### **GET /databases/{db_type}/{db_name}/schema**
@@ -78,8 +76,6 @@ This document describes the REST API endpoints and WebSocket connections that fa
   ]
 }
 ```
-
----
 
 ### **2.3 Execute a Database Query**
 
@@ -114,8 +110,6 @@ This document describes the REST API endpoints and WebSocket connections that fa
 }
 ```
 
----
-
 ### **2.4 Generate Sample Query**
 
 #### **POST /databases/{db_type}/{db_name}/sample-query**
@@ -146,8 +140,6 @@ This document describes the REST API endpoints and WebSocket connections that fa
   "description": "Get the count of products by category."
 }
 ```
-
----
 
 ### **2.5 Create a New Product**
 
@@ -184,8 +176,6 @@ This document describes the REST API endpoints and WebSocket connections that fa
 }
 ```
 
----
-
 ### **2.6 Update an Existing Product**
 
 #### **PATCH /databases/{db_type}/{db_name}/update/{product_id}**
@@ -218,8 +208,6 @@ This document describes the REST API endpoints and WebSocket connections that fa
   "message": "Product updated successfully."
 }
 ```
-
----
 
 ### **2.7 Delete a Product**
 
