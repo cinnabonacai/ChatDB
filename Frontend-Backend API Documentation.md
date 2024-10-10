@@ -2,7 +2,6 @@
 
 This document describes the REST API endpoints and WebSocket connections that facilitate the interaction between the frontend and backend systems for ChatDB, a project designed to allow users to query databases using natural language.
 
----
 
 ## **1. API Overview**
 
@@ -17,8 +16,6 @@ This document describes the REST API endpoints and WebSocket connections that fa
 | `/databases/{db_type}/{db_name}/delete/{product_id}` | DELETE | Delete a product from the database and Shopify.  |
 | `/ws/chat` | WebSocket | Real-time interaction for user queries and responses.  |
 
-
----
 
 ## **2. API Endpoints**
 
@@ -233,9 +230,6 @@ This document describes the REST API endpoints and WebSocket connections that fa
 }
 ```
 
----
-
-
 ## **3. WebSockets**
 
 ### **3.1 Real-Time Query Interaction**
@@ -261,9 +255,6 @@ This document describes the REST API endpoints and WebSocket connections that fa
   ]
 }
 ```
-
----
-
 
 ## **4. Error Handling**
 
