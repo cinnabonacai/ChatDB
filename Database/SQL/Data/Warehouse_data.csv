@@ -1,0 +1,101 @@
+id,name,address,country,phone,email,length,width,height,price,minimum_capacity,maximum_capacity,safety,humidity,temperature,is_used
+1,Rock Warehouse,"09452 Bryan Throughway, South Christine, AL 40289",Palestinian Territory,(214)271-8085x1136,morgancole@gmail.com,386.75,209.14,67.01,39725.47,251,1496,TERRIBLE,35.03,31.78,True
+2,Page Warehouse,"36109 Torres Squares, East Gary, CO 65176",Saint Martin,4728308030,nathaniel47@mahoney-parsons.org,343.85,139.94,49.37,42508.12,239,643,GOOD,52.59,8.85,False
+3,Avoid Warehouse,"72850 Middleton Forge, Port Tammy, ME 92018",Australia,001-126-332-1358x3343,sarahevans@hotmail.com,148.99,149.16,85.88,11117.05,155,1840,DECENT,85.41,-9.11,False
+4,Own Warehouse,"9454 Joseph Brook Suite 505, South Andrewmouth, VA 95487",French Guiana,6587552735,preilly@hayes.com,350.68,422.07,95.84,31034.38,401,899,GOOD,84.53,21.19,True
+5,Show Warehouse,"729 Morgan Key Apt. 760, Garciaport, MI 76336",Mongolia,+1-704-484-8988x455,kaylajenkins@yahoo.com,133.78,427.19,60.38,42101.72,498,1221,POOR,47.12,13.7,True
+6,Record Warehouse,"172 Ruiz Extension Apt. 165, South Brandon, VA 19940",Morocco,(158)116-7452,mayogregory@king.com,70.15,493.69,37.41,31606.05,225,1126,GOOD,85.82,5.73,False
+7,College Warehouse,"95675 Rachael Unions Apt. 456, Singhmouth, LA 05769",Cuba,223-203-5990,andrewramos@gibson.com,477.22,10.9,36.16,34550.95,464,1402,POOR,62.68,31.65,True
+8,Forget Warehouse,"82607 Boone Shores Apt. 514, Martinhaven, MO 91311",Greece,001-828-176-4504x212,carsonjustin@sanders.com,244.6,188.23,30.86,27558.29,482,586,GOOD,52.47,31.9,True
+9,Head Warehouse,"5138 James Island, West Keithshire, FL 06704",Sudan,386-284-8945,samantha65@gmail.com,436.86,376.61,30.54,23064.16,253,1555,OUTSTANDING,73.07,30.21,True
+10,Simply Warehouse,"9674 Rowe Glen, South Victoriabury, DE 69281",Ghana,001-833-941-8741x129,matthewwong@hotmail.com,48.07,16.77,81.81,22003.31,279,1076,DECENT,81.57,-8.51,False
+11,Pretty Warehouse,"59982 Tucker Islands, Alantown, DE 36536",Bangladesh,(695)157-4750x144,whitemelissa@hill.com,68.26,348.54,35.91,41515.08,266,798,DECENT,66.43,27.32,False
+12,Never Warehouse,"608 Ramirez Lodge Apt. 701, Davisland, VT 37788",United States Virgin Islands,674.782.2730x428,holly21@walker-gutierrez.com,194.93,195.52,89.85,48320.5,356,1893,GOOD,36.36,0.9,False
+13,Still Warehouse,"0300 Thomas Pine Suite 985, East Drew, AK 21860",Northern Mariana Islands,+1-324-184-3977x6028,shirleyjensen@burke-dyer.com,407.92,98.43,71.71,17313.75,238,1750,TERRIBLE,54.34,32.19,True
+14,Bill Warehouse,"10767 Griffin Street Suite 775, West Xavier, MA 90636",Czech Republic,921.388.2344x0693,jessica69@roberts-nelson.com,181.44,116.65,17.75,37488.95,233,582,POOR,50.98,25.23,False
+15,Believe Warehouse,"4578 Nicholson Alley, New Albertberg, IN 55303",French Southern Territories,001-711-455-5414x1233,michaelpadilla@gmail.com,383.44,413.86,40.1,42512.39,459,1331,TERRIBLE,66.32,-7.29,False
+16,Final Warehouse,"00291 Jeffrey Pine, Johnstonfurt, NV 72335",Algeria,001-858-249-9977x034,jonesangela@gmail.com,60.46,271.67,31.9,47518.88,293,1768,OUTSTANDING,65.35,5.62,True
+17,Control Warehouse,"26585 Burke Rest, New Wendy, IA 93523",Netherlands,551-182-2279x6707,thomas43@yahoo.com,145.21,236.38,58.03,28671.43,176,1424,GOOD,48.3,-3.21,False
+18,Structure Warehouse,"78747 Kathy Circle, Diazbury, MD 75699",Bulgaria,220.268.8447x57462,jennifer99@gmail.com,351.43,473.2,87.33,12432.37,294,1177,DECENT,55.98,-9.89,False
+19,Seven Warehouse,"277 Castaneda Island Apt. 824, Campbellburgh, NE 08061",Wallis and Futuna,449-578-2258x3749,nshaffer@payne.com,139.26,231.56,34.51,13298.37,230,1436,POOR,67.14,-7.19,True
+20,Back Warehouse,"156 David Walk Suite 765, Traceytown, ID 62570",Niger,402-106-3691x36873,robert56@gmail.com,486.59,368.61,21.21,5488.34,302,1940,OUTSTANDING,59.15,19.54,False
+21,Mission Warehouse,"USS Smith, FPO AA 75460",Portugal,699-110-3941,alicia97@rodriguez-johnson.org,267.79,276.92,45.0,28958.14,374,1919,GOOD,67.18,33.46,False
+22,Others Warehouse,"67003 Michael Common, Cynthiamouth, PA 83600",Monaco,557.906.5696x02760,lyoung@price.com,448.22,185.85,36.48,39991.76,496,724,OUTSTANDING,59.55,33.92,True
+23,Stay Warehouse,"64914 Mary Ways Apt. 474, Blankenshipville, SD 72853",Monaco,676-400-8226,markbecker@gmail.com,43.95,288.07,56.64,25653.54,158,1088,TERRIBLE,31.87,15.98,True
+24,Executive Warehouse,"07577 Darren Unions, North Adrian, NM 82634",Holy See (Vatican City State),+1-904-625-2459x56013,tholloway@gmail.com,346.85,382.72,14.28,6382.82,487,846,OUTSTANDING,66.65,-0.77,False
+25,Others Warehouse,"4367 Tina Plain, East Russellfurt, OR 73912",Gambia,674.452.6023x709,amy21@phillips-edwards.com,203.06,46.76,75.75,24202.02,152,1833,DECENT,86.76,15.51,True
+26,Friend Warehouse,"596 Walker Forest, North Christianport, KS 06389",Peru,001-913-813-8357,leslie10@davis.com,355.48,56.26,52.92,25998.16,230,727,TERRIBLE,56.2,30.7,False
+27,Appear Warehouse,"3783 Evans Flats Suite 605, Port Joshua, WV 18699",Poland,846-561-1270x0280,danacoleman@scott-jones.com,62.03,163.23,97.58,7784.84,497,870,GOOD,55.19,22.11,True
+28,Natural Warehouse,"43784 Rogers Ports Apt. 731, North Justin, OK 55018",Mauritania,(843)283-2871x55040,ucook@rich-brown.com,439.19,232.57,24.5,8814.95,499,1092,DECENT,86.86,-3.55,False
+29,Three Warehouse,"73598 Jones Ways Suite 470, Toddberg, NV 55020",Turkey,+1-311-447-2555x69380,davidkaiser@yahoo.com,73.27,130.27,69.59,26670.17,266,1548,TERRIBLE,62.69,14.76,False
+30,Business Warehouse,"95276 Sarah Plaza, Nicholsmouth, ND 02683",Bahrain,+1-636-786-0217,elizabethwarren@fields-jackson.biz,372.75,292.99,91.93,21144.93,358,948,TERRIBLE,32.73,33.59,False
+31,Life Warehouse,"691 Dillon Knoll Suite 466, Dukeland, PA 84009",France,813.911.6304,michaelrivera@yahoo.com,132.39,366.06,17.26,13966.88,126,1026,GOOD,36.66,16.39,False
+32,Nor Warehouse,"1681 Mayo Cliffs, New Anthony, CA 03344",Australia,+1-675-623-5892x74855,pamelaschultz@ramirez.com,478.75,222.23,67.87,36547.2,264,1657,DECENT,62.2,18.69,False
+33,Artist Warehouse,"92632 Chase Lodge, Melindatown, MO 51368",Lebanon,(145)021-1176,james00@hotmail.com,460.0,110.81,73.28,49536.33,300,1909,DECENT,69.82,33.38,True
+34,Enjoy Warehouse,"930 Fletcher Loaf, North Kimberlyhaven, MN 28428",Nauru,(413)662-6291x543,cheyenne59@dean.com,395.62,28.01,61.8,8614.42,331,547,TERRIBLE,37.19,25.92,False
+35,Although Warehouse,"PSC 7220, Box 3517, APO AE 83289",Bahamas,001-460-785-0910x13994,brownroy@yahoo.com,250.18,483.7,17.81,31179.03,246,1649,POOR,38.39,34.84,True
+36,Wonder Warehouse,"3949 Bradley Ranch Apt. 129, Jeremytown, OH 84228",Uruguay,(670)803-9594,ohaley@hotmail.com,349.3,276.48,79.32,46241.85,292,1148,POOR,60.19,0.75,False
+37,Often Warehouse,"PSC 5005, Box 3620, APO AE 47337",Croatia,+1-933-823-0510x068,teresajenkins@stein.com,407.27,64.73,48.92,18622.0,482,1446,GOOD,65.84,-0.16,False
+38,Dream Warehouse,"108 Shelly Alley, Fergusonfort, AR 46396",Maldives,575.870.8604x639,ericksonchristina@collins.com,41.23,459.56,93.43,28679.83,413,552,TERRIBLE,42.88,14.39,True
+39,Different Warehouse,"7874 Young Fort Apt. 168, Phillipston, TX 21808",Cameroon,001-283-004-6389x914,conniewright@hotmail.com,348.64,183.43,57.35,10736.41,126,724,OUTSTANDING,78.66,-1.73,False
+40,Power Warehouse,"616 Terry Village, Ruizmouth, KY 26337",Estonia,305-774-4207,ofrye@yahoo.com,235.3,357.77,35.24,24029.64,390,1073,OUTSTANDING,38.64,17.84,True
+41,Car Warehouse,"5309 Amy Harbors, Shannonborough, ME 61139",Sweden,001-655-394-3328x3384,robertcarlson@hotmail.com,35.55,134.45,13.79,19644.01,102,845,GOOD,69.81,-4.77,True
+42,Air Warehouse,"9261 Young Falls, East Melanie, WY 17371",Congo,001-629-116-4622,flopez@hall.com,349.47,155.01,33.94,10656.84,428,1655,GOOD,71.17,5.3,True
+43,Enough Warehouse,"469 Berry Islands Suite 782, Smithmouth, MS 39377",South Africa,+1-128-969-4309x485,katie17@hotmail.com,385.24,386.68,86.64,47151.03,181,906,TERRIBLE,74.08,29.18,False
+44,Reason Warehouse,"61233 Kevin Crossroad, West Shannon, WA 53059",Argentina,018-886-8066,hbarnett@cohen.info,392.04,174.6,20.74,33263.1,493,1686,OUTSTANDING,31.25,-2.7,True
+45,Day Warehouse,"83302 Garcia Parks Apt. 336, Nathanside, PA 11210",Oman,(494)602-1140x95305,valerie24@hotmail.com,378.94,48.9,98.83,18877.22,242,1850,GOOD,65.44,4.19,False
+46,Note Warehouse,"PSC 5499, Box 6939, APO AE 09505",Uganda,552.143.6817x5699,jon18@conway.net,242.55,259.68,41.45,15147.72,294,1205,TERRIBLE,78.2,26.37,True
+47,Knowledge Warehouse,"3876 Carter Walks, Schneiderfort, MD 57509",Sudan,+1-089-673-5233x254,raustin@yahoo.com,318.79,288.97,65.52,17426.11,120,1854,GOOD,43.34,1.73,False
+48,Also Warehouse,"92334 Bennett Causeway Apt. 416, East Scottchester, WY 95460",South Africa,958-292-2319,steven58@yahoo.com,203.73,313.42,12.74,23537.97,303,1519,POOR,46.32,8.47,False
+49,However Warehouse,"83021 Kyle Fields Suite 055, East Felicia, WI 54325",Ireland,347-572-7087x58444,wherrera@hotmail.com,196.73,261.09,95.12,27393.59,468,1502,OUTSTANDING,40.01,28.54,False
+50,Particular Warehouse,"040 Patricia Path Suite 118, Port Christopherville, RI 21819",Japan,364.331.8461x166,dpatel@cardenas.com,144.07,489.46,97.57,36452.63,225,579,OUTSTANDING,61.92,20.6,False
+51,Blood Warehouse,"085 Charles Pine Suite 852, Ellischester, UT 68854",Benin,0974712840,jeffreyjones@yahoo.com,107.86,41.62,34.39,16431.65,472,612,POOR,75.22,26.38,False
+52,Class Warehouse,"288 Olson Ports, Marytown, OK 53528",Algeria,853-956-0054x29842,david54@gmail.com,193.01,74.67,83.15,26626.25,430,697,GOOD,82.43,-7.53,False
+53,Alone Warehouse,"7981 Townsend Parkways, Morrowmouth, IN 12226",Grenada,+1-722-188-0760x07921,pam27@donaldson.com,210.87,121.35,78.88,22219.49,183,988,GOOD,47.1,4.18,True
+54,Get Warehouse,"6422 Jacqueline Ports Apt. 235, Smithside, MI 44626",Cuba,001-968-474-8356x55090,larry95@martin.com,299.95,330.44,55.27,32512.11,386,794,OUTSTANDING,39.41,34.2,True
+55,Town Warehouse,"82724 Jones Shores Apt. 290, Andrewberg, KY 02664",Namibia,6084579372,mcclaintheresa@harris.com,93.93,39.19,35.6,6073.77,299,1919,OUTSTANDING,82.8,30.9,False
+56,Decide Warehouse,"9070 Charles Village Suite 939, Chenhaven, MO 74645",United Kingdom,001-700-108-5570x078,gailmills@henderson.com,74.45,31.34,95.62,5506.4,288,1554,POOR,57.93,-0.17,False
+57,Popular Warehouse,"4255 Miller Crest Apt. 557, Heidimouth, AK 04764",Wallis and Futuna,248-295-1442x56941,andreadiaz@pacheco.info,31.14,135.87,75.96,30761.32,359,534,DECENT,33.6,18.37,True
+58,Work Warehouse,"33640 Bailey Hollow, North Christopherburgh, TX 13601",Qatar,289-246-6377,tiffanymason@gmail.com,314.85,284.0,56.82,31515.98,273,507,OUTSTANDING,82.11,3.39,True
+59,Painting Warehouse,"379 Schmitt Hill Suite 070, New Josechester, DC 96098",Angola,(108)109-7889x1916,armstrongcorey@hotmail.com,331.41,480.2,43.59,44122.48,164,1166,GOOD,40.38,22.08,False
+60,Administration Warehouse,"6595 Kara Curve, Margaretberg, NY 69017",Djibouti,001-733-651-3853x45086,mariahamilton@yahoo.com,151.06,205.21,23.67,38886.47,266,930,GOOD,65.57,-0.63,True
+61,Crime Warehouse,"99334 Ryan Oval, New Lisahaven, PA 64730",Comoros,(576)485-8512,edward98@hernandez.com,478.2,402.63,34.7,36688.16,134,819,GOOD,77.7,26.05,False
+62,Magazine Warehouse,"594 Brett Parkway, Westchester, LA 12302",Norfolk Island,001-514-315-2443x1308,denisecarney@hotmail.com,41.4,379.29,41.62,43351.08,223,767,POOR,62.22,17.57,True
+63,Couple Warehouse,"40363 Kimberly Wall Apt. 100, Jaybury, FL 64896",Philippines,+1-265-594-0801x9938,sgreen@martin.com,433.64,161.16,89.37,12094.3,145,767,TERRIBLE,53.73,-6.1,False
+64,Detail Warehouse,"85448 Eric Trafficway, South Allisonton, SC 43993",Iceland,(509)351-2609x1845,uwilson@yahoo.com,84.38,84.97,43.37,26026.27,364,1403,POOR,47.83,-6.04,False
+65,Wall Warehouse,"115 Torres Vista, Kyleside, MT 67167",Philippines,(855)350-3145x255,derrickjames@keller.org,387.69,419.54,43.27,43096.25,200,1581,TERRIBLE,40.31,5.26,False
+66,Police Warehouse,"52089 Nicholas Throughway Suite 483, Englishmouth, MO 50788",Turkmenistan,0743980334,perrybrian@gmail.com,144.9,104.45,23.94,18572.67,422,1793,POOR,72.22,-1.0,False
+67,Sing Warehouse,"0549 David Squares, South Jenniferstad, SD 49566",Tokelau,(344)177-2656,heather86@yahoo.com,325.43,79.58,12.41,15144.55,277,954,GOOD,66.74,9.1,False
+68,Lawyer Warehouse,"644 Ronald Lights, Cynthiaberg, ID 24361",Congo,(923)199-3068,shannonjennifer@gmail.com,457.11,180.79,16.24,46919.37,275,730,POOR,81.83,28.49,False
+69,Take Warehouse,"5893 Smith Prairie, North Bradley, DE 57057",Nauru,(345)185-6351x4384,gordonvirginia@thomas-roy.org,379.01,312.49,32.1,43525.06,133,1786,OUTSTANDING,63.06,-2.88,False
+70,Break Warehouse,"19883 Alexander Falls, Schmittshire, WY 28493",Qatar,028-807-3858x50091,kristenmiles@hotmail.com,158.56,432.83,94.9,44213.67,248,1311,GOOD,63.28,22.2,True
+71,This Warehouse,"8199 Clayton Lights, Port Morgan, IA 09543",Haiti,803-697-9321x12562,robertjohnson@preston.com,382.06,217.01,65.24,15793.4,238,1498,TERRIBLE,58.57,-5.39,True
+72,Provide Warehouse,"18650 Randolph Parkways, South Jillianhaven, TX 64111",French Southern Territories,001-148-660-6790x2866,sanchezlaura@gmail.com,217.24,152.05,99.75,39019.82,193,973,GOOD,53.7,29.15,False
+73,Compare Warehouse,"Unit 2627 Box 6965, DPO AE 94878",Botswana,1329986901,npatel@hotmail.com,88.55,478.08,55.11,46747.73,184,1662,GOOD,60.82,34.83,False
+74,Record Warehouse,"650 Sherry Union, Hudsonland, FL 49233",Cambodia,284.129.0066x57771,jacksoncody@hotmail.com,85.99,482.02,27.48,45443.51,313,1353,POOR,39.36,9.92,True
+75,Particularly Warehouse,"33315 Dan Corners Suite 691, Port Heatherhaven, HI 48558",Western Sahara,(641)812-9372x4891,eric51@graham.com,61.53,35.02,30.41,36503.34,495,1124,DECENT,84.49,9.97,False
+76,Event Warehouse,"44627 White Meadow Apt. 270, Walkerburgh, MA 52640",Congo,5983906658,kirstenaguirre@lee.net,131.66,147.72,80.4,27935.85,201,1647,OUTSTANDING,73.69,22.6,False
+77,Evidence Warehouse,"45494 Jones Plaza Suite 251, East James, VA 32234",Dominican Republic,+1-997-351-0206x29503,vanessagomez@gmail.com,101.04,488.33,11.73,13079.16,299,560,OUTSTANDING,82.79,-4.68,True
+78,Peace Warehouse,"3928 Sullivan Inlet Apt. 294, Port Brian, OH 99920",Madagascar,281-471-3542x620,brookemorales@johnson.com,29.98,466.13,82.25,43805.6,275,672,GOOD,71.17,32.87,False
+79,Huge Warehouse,"739 Lee Street Suite 373, Johnstad, IA 31062",Gabon,651.968.5189x08971,adamsteresa@hotmail.com,362.2,194.21,58.95,13320.17,191,846,TERRIBLE,81.9,27.65,False
+80,Production Warehouse,"810 Gomez Cliffs, South Ericaview, GA 09265",Kyrgyz Republic,001-077-379-8485x663,williamarnold@hotmail.com,365.4,462.78,66.63,20190.73,302,1162,POOR,68.88,-2.06,True
+81,Resource Warehouse,"256 Ariana Centers Apt. 188, Port Deborahtown, AZ 77419",Ukraine,+1-136-564-0479x82958,zsimpson@hotmail.com,489.19,318.21,71.52,13297.78,164,1514,DECENT,39.89,21.01,True
+82,Computer Warehouse,"340 Adrian Hollow, Port Phillip, UT 95494",Sweden,799.595.4519x50767,beckyrobertson@robinson.com,361.61,274.9,20.92,16656.96,172,1531,POOR,64.61,22.1,False
+83,Current Warehouse,"USS Jones, FPO AA 16753",Poland,666-929-1921,kellercaitlin@hotmail.com,305.86,337.78,64.13,19904.64,463,1560,POOR,84.57,13.94,True
+84,Similar Warehouse,"61914 Shea Common, East Elizabeth, IL 87024",Tunisia,(949)771-0544x825,angela01@jackson.com,374.36,304.43,94.89,31468.21,373,935,DECENT,68.01,-7.84,True
+85,Son Warehouse,"808 Curtis Drive Suite 664, Port Katieton, ND 42079",Swaziland,001-102-488-5408x60533,johnsonjennifer@yahoo.com,102.11,74.91,17.98,26630.26,373,706,TERRIBLE,42.38,15.03,True
+86,Prepare Warehouse,"831 Flores Manor, West Matthewton, TN 12128",Taiwan,(019)745-0656,charles14@dyer.org,140.89,256.42,57.0,49869.18,169,1213,TERRIBLE,64.74,16.63,False
+87,Relationship Warehouse,"1680 Hutchinson Hills Suite 323, New Derrick, MT 42599",Lesotho,397.917.6829x19436,wadetara@bennett.com,151.58,200.77,72.03,36219.64,147,735,DECENT,62.09,-7.84,True
+88,Simple Warehouse,"386 Alexander Square, New Kimfort, MS 52363",India,001-977-561-3375x939,michellebrown@hotmail.com,319.71,83.76,47.17,8234.62,344,1745,GOOD,70.84,14.14,False
+89,Which Warehouse,"4133 Pearson Points, North Joycefort, NV 58259",Sao Tome and Principe,001-630-275-1567x08251,jessechristian@huff-hall.com,51.13,288.97,28.91,9730.44,417,611,TERRIBLE,47.99,17.05,False
+90,Already Warehouse,"4562 Cervantes Lodge, New Michaelborough, MT 96925",Uruguay,+1-515-723-5773x53790,munozlisa@khan-ruiz.info,72.5,472.29,15.94,21652.97,499,1531,POOR,69.17,27.76,False
+91,Method Warehouse,"0052 David Ville Apt. 051, Port Michaelport, VT 83501",Thailand,001-660-620-8907x7870,wrogers@yahoo.com,297.99,206.52,43.51,23080.49,305,1639,OUTSTANDING,32.16,-3.48,False
+92,Prove Warehouse,"83049 Glenn Oval Suite 182, Crystalhaven, HI 97350",Congo,(247)451-5235,katherineburns@yahoo.com,457.44,130.2,77.85,45021.81,276,1326,DECENT,48.9,22.61,True
+93,Reflect Warehouse,"4045 Green Forges Suite 048, Jessicamouth, NY 54608",Philippines,+1-059-393-7718,iwiley@herring.com,70.58,335.8,66.56,5516.86,113,843,DECENT,54.57,3.06,True
+94,Produce Warehouse,"079 Jessica Light, Thompsonbury, CO 30470",Vanuatu,(511)970-7596x33145,whitetiffany@hotmail.com,245.05,226.31,49.57,12745.54,110,1468,DECENT,37.45,0.9,True
+95,Cup Warehouse,"09981 Kyle Walks Apt. 683, West Jonathanhaven, UT 99282",Puerto Rico,809.669.5168x9718,andersonchristina@summers.com,454.82,146.97,29.38,37130.65,372,1227,POOR,51.85,26.42,False
+96,Service Warehouse,"241 Glenda Squares, Nathanfort, RI 30896",Benin,+1-456-714-1084,markwhitehead@hughes.com,257.77,68.83,65.38,25131.11,140,1098,TERRIBLE,56.2,4.7,False
+97,Kind Warehouse,"684 Elizabeth Drives Suite 450, North Jorgechester, CA 25632",Luxembourg,534.726.1775x4687,chavezjennifer@burgess-davenport.org,376.27,469.46,72.23,23122.99,152,1343,GOOD,83.91,14.7,False
+98,Source Warehouse,"481 Christopher Ports Suite 785, South Richard, MI 75752",Pitcairn Islands,(163)295-0504x057,rbridges@yahoo.com,438.02,132.75,48.48,42965.98,352,1544,POOR,86.89,26.95,False
+99,Kitchen Warehouse,"25112 Joseph Club Apt. 013, Port Kimberlyfurt, VT 49046",Libyan Arab Jamahiriya,+1-708-756-8990x52406,jonesjohn@baker.biz,82.38,308.41,73.36,19780.38,367,1224,POOR,38.43,12.65,False
+100,Few Warehouse,"13059 Robert Pines Apt. 684, South Debra, WV 26945",Madagascar,509-442-5236x8321,qquinn@campbell.org,306.62,175.92,75.64,14313.56,117,788,OUTSTANDING,50.97,-8.91,True
