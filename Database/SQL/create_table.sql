@@ -28,14 +28,15 @@ create table Manufacturer(
 create table Reviewer(
 	id int primary key,
 	country VARCHAR(25),
-	rating DECIMAL,
+	-- rating DECIMAL,
 	age INT,
 	gender VARCHAR(25),
 	phone_number VARCHAR(25),
 	email VARCHAR(25),
+	-- comment TEXT
+	introduction TEXT,
 	username VARCHAR(25),
-	password VARCHAR(25),
-	comment TEXT
+	password VARCHAR(25)
 );
 
 create table Warehouse(
@@ -64,10 +65,10 @@ create table Product(
 	mage varchar(2803),
 	quantity INT,
 	price DECIMAL,
-	-- manufacture_id INT,
+	manufacture_id INT,
 	warehouse_id INT,
 	foreign key(warehouse_id) references Warehouse(id),
-	-- reviewer_id INT,
+	reviewer_id INT,
 	description TEXT,
 	color VARCHAR(25),
 	length DECIMAL,
@@ -93,6 +94,9 @@ create table Relationship_Product_Vendor(
 create table Relationship_Product_Reviewer(
 	product_id INT,
 	reviewer_id INT,
+	comment TEXT,
+	comment_time DATE,
+	rating DECIMAL,
 	foreign key(product_id) references Product(id),
 	foreign key(reviewer_id) references Reviewer(id),
 	primary key(product_id, reviewer_id)
