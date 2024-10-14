@@ -1,5 +1,5 @@
 create table Product(
-	id int primary key,
+	product_id int primary key,
 	body_html varchar(2000),
 	created_at date not null,
 	handle varchar(100) unique,
