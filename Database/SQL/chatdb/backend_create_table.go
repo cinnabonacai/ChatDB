@@ -24,7 +24,6 @@ func main() {
     if err != nil {
         log.Fatalf("Unable to read SQL file: %v", err)
     }
-
     // splite file contents into multiple SQL statements
     commands := strings.Split(string(queries), ";")
 
