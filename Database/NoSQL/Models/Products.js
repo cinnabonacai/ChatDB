@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 const variantSchema = new mongoose.Schema({
     variantId: {
        type: String,
-       required: true
+       required: true,
+       unique: true
     },
     sku: {type: String},
     price: {type: Number},
@@ -20,8 +21,16 @@ const variantSchema = new mongoose.Schema({
         default: 'kg'
     },
     selectedOptions: [{
-        name: {type: String},
+        name: {
+          type: String,
+          unique: true
+        },
         value: {type: String}
+    }],
+    images: [{
+        imageId: {type: String},
+        src: {type: String},
+        altText: {type: String}
     }],
     createdAt: {
         type: Date,
@@ -36,7 +45,8 @@ const variantSchema = new mongoose.Schema({
 const imageSchema = new mongoose.Schema({
     imageId: {
        type: String,
-       required: true
+       required: true,
+       unique: true
     },
     src: {
       type: String,
