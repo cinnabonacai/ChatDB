@@ -3,8 +3,7 @@ const mongoose = require('mongoose');
 const variantSchema = new mongoose.Schema({
     variantId: {
        type: String,
-       required: true,
-       unique: true
+       required: true
     },
     sku: {type: String},
     price: {type: Number},
@@ -46,7 +45,6 @@ const imageSchema = new mongoose.Schema({
     imageId: {
        type: String,
        required: true,
-       unique: true
     },
     src: {
       type: String,

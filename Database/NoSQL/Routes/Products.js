@@ -234,7 +234,7 @@ router.get('/title/:title/vendor/:vendor/variants/:variantID/options', async (re
         if(!variantOptionsList || variantOptionsList.length === 0) {
             return res.status(404).json({'message': 'The options of this variant are still pending. Please try again later!'});
         }
-        return res.status(200).json(variantOptionsList[0]);
+        return res.status(200).json(variantOptionsList);
     }catch(err) {
         return res.status(500).json({
             'message': 'Internal Server Error',
@@ -261,7 +261,7 @@ router.get('/title/:title/vendor/:vendor/variants/:variantID/options/:name', asy
         if(!optionSelected) {
             return res.status(404).json({'message': 'The option selected is not found. Please try again later!'});
         }
-        return res.status(200).json(optionSelected[0]);
+        return res.status(200).json(optionSelected);
     }catch(err) {
         return res.status(500).json({
             'message': 'Internal Server Error',
@@ -269,6 +269,7 @@ router.get('/title/:title/vendor/:vendor/variants/:variantID/options/:name', asy
         });
     }
 });
+
 
 // retrieve all images of the variant based on the title, vendor, and variantID
 router.get('/title/:title/vendor/:vendor/variants/:variantID/images', async (req, res) => {
@@ -280,7 +281,7 @@ router.get('/title/:title/vendor/:vendor/variants/:variantID/images', async (req
         }
 
    
-        const variantSelected = await product.variant.find(variant => variant.variantId === variantID);
+        const variantSelected = product.variants.find(variant => variant.variantId === variantID);
         if (!variantSelected) {
             return res.status(404).json({'message': 'The variant associated with this product has not been published yet. Please be patient!'});
         }
@@ -941,6 +942,8 @@ router.delete('/title/:title/vendor/:vendor/images/:imageID', async (req, res) =
        });
    }
 });
+
+module.exports = router;
 
 
 

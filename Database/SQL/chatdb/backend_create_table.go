@@ -29,7 +29,7 @@ func main() {
 
     // execute each SQL statement
     for _, command := range commands {
-        trimmedCommand := strings.TrimSpace(command)
+        trimmedCommand := strings.TrimSpace(command) //delete the above line
         if len(trimmedCommand) > 0 {
             _, err := db.Exec(trimmedCommand)
             if err != nil {
