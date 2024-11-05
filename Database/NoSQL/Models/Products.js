@@ -20,10 +20,7 @@ const variantSchema = new mongoose.Schema({
         default: 'kg'
     },
     selectedOptions: [{
-        name: {
-          type: String,
-          unique: true
-        },
+        name: {type: String},
         value: {type: String}
     }],
     images: [{
@@ -106,5 +103,5 @@ const productSchema = new mongoose.Schema({
         default: Date.now
     }
 });
-productsCollection = mongoose.model('Products', productSchema);
+productsCollection = mongoose.model('products', productSchema);
 module.exports = productsCollection;

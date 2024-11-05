@@ -1,5 +1,12 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
+
+mongoose.connect('mongodb+srv://zih:GCNipWIV7i1eeWdv@cluster0.3u4hg.mongodb.net/sampleCultureProduct', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+}).then(() => console.log('Connected to MongoDB'))
+  .catch(err => console.error('Failed to connect to MongoDB', err));
 
 const productsCollection = require('../Models/Products');
 
