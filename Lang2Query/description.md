@@ -14,15 +14,11 @@
     - **Special words**: *none, null*  
   - Represent each operation as a key-value pair in a dictionary for further processing.
 
----
-
 #### **Step 2: Syntax Analysis (Parsing)**
 - **Purpose**: Check whether the sentence has valid syntax.  
 - **Process**:
   - Generate an **Abstract Syntax Tree (AST)** to focus on the meaningful content of the code while ignoring unnecessary details.
   - Utilize **in-order traversal** for parsing and validation.
-
----
 
 #### **Step 3: Semantic Analysis**
 - **Tasks**:
@@ -32,12 +28,8 @@
   - **Symbol Table Operations**: Support insertion, deletion, update, and search operations.  
   - **Error Handling**: If any of the above checks fail, identify and report the specific issue.
 
----
-
 #### **Step 4: Code Generation**
 - Transform the validated syntax and semantics into executable code, either SQL or NoSQL queries, depending on the backend requirements.
-
----
 
 #### **Step 5: Backend Integration**
 - Deploy the generated code to the backend for execution. Handle database interactions and return results in a standardized format.
@@ -59,8 +51,6 @@
    - **Compiler Module**: Performs lexical, syntactic, and semantic analysis, and generates code.
    - **Backend Module**: Interacts with databases, executes SQL or NoSQL queries, processes results, and returns outputs.
    - **Error Handling Module**: Detects errors and provides clear feedback.
-
----
 
 ### **Step-by-Step Implementation**
 
@@ -136,8 +126,6 @@
 
 - **Error Handling**:
   - If generated SQL or NoSQL queries fail, provide user-friendly error messages with potential reasons.
-
----
 
 ### **Future Optimization and Expansion Directions**
 
