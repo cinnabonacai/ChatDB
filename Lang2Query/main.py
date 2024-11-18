@@ -14,7 +14,7 @@ class Token:
 
 def infer_sql_type(value: Any) -> str:
     # SQL Type Value
-
+    
     if value is None or (isinstance(value, str) and value.strip() == ""):
         return "NULL"
     if isinstance(value, str) and value.lower() in ["true", "false"]:
@@ -44,19 +44,26 @@ def infer_sql_type(value: Any) -> str:
 
 def infer_nosql_type(value: Any) -> str:
     # NoSQL Type Value
-
     if value is None or (isinstance(value, str) and value.strip() == ""):
         return "null"
+    
     if isinstance(value, str) and value.lower() in ["true", "false"]:
         return "bool"
-    try:
-        if isinstance(value, str) and value.isdigit():
-            return "int32"
-        float(value)
-        if "." in str(value):
-            return "double"
-    except ValueError:
-        pass
+    '''
+    # Check for ISO 8601 datetime strings
+    if isinstance(value, str):
+        iso_datetime_pattern = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z?$"
+        if re.match(iso_datetime_pattern, value):
+            return "string"
+    '''
+   # Handle numeric strings
+    #if isinstance(value, str):
+        # Check for integer
+    
+    if isinstance(value, str) and value.isdigit():
+        return "int32"
+    if isinstance(value, str) and '.' in value and ':' not in value:
+        return "double"
     if isinstance(value, list):
         return "array"
     if isinstance(value, dict):
@@ -95,10 +102,31 @@ def detect_field_types_from_json(file_path: str) -> Dict[str, str]:
 
     with open(file_path, "r", encoding="utf-8") as f:
         data = json.load(f)
-        field_types = {}
-        for field, value in data.items():
-            field_types[field] = infer_nosql_type(value)
-        return field_types
+
+        if isinstance(data, dict):
+            # Root is a dictionary
+            field_types = {}
+            for field, value in data.items():
+                field_types[field] = infer_nosql_type(value)
+            return field_types
+
+        elif isinstance(data, list):
+            # Root is a list
+            if not data:
+                raise ValueError("JSON file is empty.")
+            # Assuming the list contains dictionaries
+            field_types = {}
+            for field in data[0]:
+                if field == '_id':
+                    field_types[field] = "string"
+                    continue
+                sample_value = data[0][field]
+                field_types[field] = infer_nosql_type(sample_value)
+            return field_types        
+
+        else:
+            raise ValueError("Unsupported JSON structure. Expected a dictionary or a list.")
+      
 
 symbol_table: Dict[str, str] = {} 
 
@@ -115,13 +143,14 @@ def generate_separate_symbol_tables(path: str) -> None:
 
 # the rules for tokens:
 def generate_field_patterns(table_selected):
-    fields = "|".join(re.escape(field) for field in table_selected.keys())
-    return rf"\b({fields})\b"
+    escaped_fields = [re.escape(field) for field in table_selected.keys()]
+    fields_pattern = "|".join(escaped_fields)
+    return rf"\b({fields_pattern})\b"
 
 # (1) \b -> the word boundary that ensures no partial matches
 TOKEN_RULES = [
     ("KEYWORD", r"\b(search for|look for|get|retrieve|find|select|query|fetch|read|access|filter|extract|look up|match)\b"),  # 动词[verbs]
-    ("RELATION", r"\b(equal to|greater than|less than|is not equal to|greater than or equal to|less than or equal to|>=|<=|>|<|!=)\b"),  # 关系运算符[relational operators]
+    ("RELATION", r"\b(equal to|greater than|less than|not equal to|greater than or equal to|less than or equal to|>=|<=|>|<|!=)\b"),  # 关系运算符[relational operators]
     ("FIELD", generate_field_patterns(symbol_table)),  # 字段名[fields]  # Pending: change it into the specific fields
     ("LOGICAL_OPERATOR", r"\b(and|or|nor)\b"),  # 逻辑操作符[logical operators]
     ("VALUE", r"(\d+|'.*?')"),  # 数值或字符串值[string or number]
@@ -171,6 +200,7 @@ def lexical_analysis(input_text: str) -> List[Token]:
         # The position is not found
         if not match:
             raise SyntaxError(f"Illegal character at position {pos}: {input_text[pos]}")
+        pos += 1
     return tokens
 
 #AST Type
@@ -422,69 +452,220 @@ class CodeGenerator:
      
      # It's time to generate the query based on Abstract Syntax Tree
      # PENDING: The name of the table needs to be modified based on the table name.
-    def generate(self, ast, table_name="items"):
+    def generate(self, ast, table_name="items", operation="SELECT", **kargs):
         if ast.type == "QUERY":
-            return self.generate_query(ast, table_name)
+            if self.target == "SQL":
+                return self.generate_sql(ast, table_name, operation, **kargs)
+            elif self.target == "MongoDB":
+                return self.generate_mongo(ast, table_name, operation, **kargs)
         else:
             raise ValueError(f"Unsupported AST node type: {ast.type}")
+   
+    def generate_sql(self, ast, table_name, operation="SELECT", **kwargs):
+        condition_node = next(child for child in ast.children if child.type == "CONDITION")
+        if operation == "SELECT":
+            columns = kwargs.get("columns", "*")
+            joins = kwargs.get("joins", [])
+            group_by = kwargs.get("group_by")
+            having = kwargs.get("having")
+            order_by = kwargs.get("order_by")
+            sort_order = kwargs.get("sort_order", "ASC")
 
-    # 
-    def generate_query(self, node, table_name):
-        # The query is produced based on the generation mentioned above.
-        condition_node = next(child for child in node.children if child.type == "CONDITION")
-        if self.target == "SQL":
-            # If it is SQL, the query will be supposed to generate the sql
-            return self.generate_sql(condition_node, table_name)
-        elif self.target == "MongoDB":
-            # If it is not sql, the query will be supposed to generate the noSQL
-            return self.generate_mongo(condition_node, table_name)
+            query = f"SELECT {columns} FROM {table_name}"
+            for join in joins:
+                join_table = join.get("table")
+                join_type = join.get("type", "INNER").upper()
+                join_condition = join.get("on")
+                if not join_table or not join_condition:
+                    raise ValueError("JOIN requires 'tables' and 'on'")
+                query += f"{join_type} JOIN {join_table} ON {join_condition}"
+            
+            if condition_node:
+               conditions = self.traverse_conditions(condition_node, for_sql = True)
+               query += f" WHERE {' '.join(conditions)}"
+            
+            if group_by:
+                query += f" GROUP BY {group_by}"
+
+            if having:
+                query += f" HAVING {having}"
+            
+            if order_by:
+                query += f" ORDER BY {order_by} {sort_order}"
+            
+            return query + ";"
+        elif operation == "INSERT":
+            fields = kwargs.get("fields", []) # extract the specific field at my table. For instance "id" "name" "price"
+            values = kwargs.get("values", []) # extract the values associated with this specific field "98076" "Sam" 27.4 
+            if not fields or not values:
+                raise ValueError("INSERT requires 'fields' and 'values'")
+            
+            if len(fields) != len(values): 
+                raise ValueError("The length of fields and values must be the same!")
+            
+            fields_str = ", ".join(fields) # "id", "name", "price"
+            values_str = ", ".join(f"'{v}'" for v in values) # 98076, "Sam", 27.4
+            return f"INSERT INTO {table_name} ({fields_str}) VALUES ({values_str});"
+        elif operation == "UPDATE":
+            updates = kwargs.get("updates", {})
+            if not updates:
+                raise ValueError("UPDATE requires 'updates'")
+            set_clause = ', '.join(f"{k}='{v.replace("'", "''")}'" for k, v in updates.items() if v is not None)
+            if not set_clause:
+                raise ValueError("No valid updated provided")
+            
+            query = f"UPDATE {table_name} SET {set_clause}"
+
+            if condition_node:
+                conditions = self.traverse_conditions(condition_node, for_sql = True)
+                query += f" WHERE {' '.joins(conditions)}"
+            
+            return query + ";"
+        elif operation == "DELETE":
+            joins = kwargs.get("joins", [])
+            query = f"DELETE FROM {table_name}"
+
+            if joins:
+                for join in joins:
+                    join_table = join.get("table")
+                    join_type = join.get("type", "INNER").upper()
+                    join_condition = join.get("on")
+                    if not join_table or not join_condition:
+                        raise ValueError("JOIN requires 'table' and 'on'")
+                    query += f" {join_type} JOIN {join_table} ON {join_condition}"
+            
+            if condition_node:
+                conditions = self.traverse_conditions(condition_node, for_sql= True)
+                query += f" WHERE {' '.join(conditions)}"
+            
+            return query + ";"
         else:
-            raise ValueError(f"Unsupported target: {self.target}")
+            raise ValueError(f"Unsupported operation: {operation}")
 
-    # Pending: implement various kinds of sql queries
-    #          Solve the question based on the SQL query
-    def generate_sql(self, condition_node, table_name):
-        """The output of the SQL is reproduced"""
-        conditions = self.traverse_conditions(condition_node, for_sql=True)
-        return f"SELECT * FROM {table_name} WHERE {' '.join(conditions)};"
+
+    # # Pending: implement various kinds of sql queries
+    # #          Solve the question based on the SQL query
+    # def generate_sql(self, condition_node, table_name):
+    #     """The output of the SQL is reproduced"""
+    #     conditions = self.traverse_conditions(condition_node, for_sql=True)
+    #     return f"SELECT * FROM {table_name} WHERE {' '.join(conditions)};"
 
     # Pending: implement various kinds of NoSQL queries
     #          Solve the question based on the NoSQL query
-    def generate_mongo(self, condition_node, table_name):
-        """MongoDB is generated based on various conditions"""
-        conditions = self.traverse_conditions(condition_node, for_sql=False)
-        if len(conditions) == 1:
-            query = conditions[0]
+    def generate_mongo(self, condition_node, table_name, operation="FIND", **kwargs):
+        if operation == "FIND":
+            conditions = self.traverse_conditions(condition_node, for_sql=False)
+            projection = kwargs.get("projection")
+            sort = kwargs.get("sort")
+            skip = kwargs.get("skip", 0)
+            limit = kwargs.get("limit", 0)
+
+            query = {"$and": conditions} if len(conditions) > 1 else conditions[0]
+            mongo_query = f"db.{table_name}.find({query})"
+
+            if projection:
+                mongo_query += f", {projection}"
+            mongo_query += ")"
+
+            if sort:
+                mongo_query += f".sort({sort})"
+            if skip > 0:
+                mongo_query += f".skip({skip})"
+            if limit > 0:
+                mongo_query += f".limit({limit})"
+            return mongo_query + ";"
+        elif operation == "INSERT":
+            documents = kwargs.get("documents", [])
+            if not documents:
+                raise ValueError("INSERT requires 'documents' to be provided")
+            
+            if isinstance(documents, list):
+                return f"db.{table_name}.insertMany({json.dump(documents)});"
+            else: 
+                return f"db.{table_name}.insertOne({json.dump(documents)});"
+        elif operation == "UPDATE":
+            updates = kwargs.get("updates")
+            if not updates:
+                raise ValueError("UPDATE requires 'updates' to be provided.")
+            update_many = kwargs.get("update_many", False)
+            query = {"$and": conditions} if len(conditions) > 1 else conditions[0]
+            update_query = f"db.{table_name}."
+            update_query += "updatedMany" if update_many else "updateOne"
+            update_query += f"({query}, {json.dumps({'$set': updates})});"
+            
+            return update_query
+        
+        elif operation == "DELETE":
+            delete_many = kwargs.get("delete_many", False)
+            query = {"$and": conditions} if len(conditions) > 1 else conditions[0]
+            delete_query = f"db.{table_name}."
+            delete_query += "deleteMany" if delete_many else "deleteOne"
+            delete_query += f"{{query}};"
+
+            return delete_query
+        
+        elif operation == "AGGREGATE":
+            pipeline = []
+
+            if condition_node:
+                conditions = self.traverse_conditions(condition_node, for_sql=False)
+                match_stage = {'$match': {'$and': conditions} if len(conditions) > 1 else conditions[0]}
+                pipeline.append(match_stage)
+            
+
+            for stage in ["unwind", "group", "sort", "project", "lookup", "limit", "skip"]:
+                if stage in kwargs:
+                    pipeline.append(f"${stage}: kwargs['${stage}]")
+           
+            return f"db.{table_name}.aggregate({json.dumps(pipeline, indent=2)});"
         else:
-            query = { "$and": conditions }
-        return f"db.{table_name}.find({query});"
+            raise ValueError(f"Unsupported operation: {operation}")
+         
+
 
     def traverse_conditions(self, node, for_sql=True):
         # implement variouus conditions to resolve each type
         conditions = []
         for child in node.children:
-            # single condition
+            # single condition: >, <, =, !=, >=, <=
             if child.type == "SINGLE_CONDITION":
                 field = child.children[0].value
                 relation = child.children[1].value
                 value = child.children[2].value
                 if for_sql:
                     # If it is SQL, convert it into SQL
+                    if isinstance(value, str) and not value.isdigit():
+                        value = f"'{value}'"
                     sql_relation = self.map_sql_operator(relation)
                     conditions.append(f"{field} {sql_relation} {value}")
                 else:
                     # If it is noSQL, convert it into noSQL
                     mongo_operator = self.map_mongo_operator(relation)
                     conditions.append({ field: { mongo_operator: value } })
-            # multiple conditions
+            # logical operator: and, or, nor
             elif child.type == "LOGICAL_OPERATOR":
+                operator = child.value.lower()
                 if for_sql:
                     conditions.append(child.value.upper())
-                #conditions.append(child.value.upper() if for_sql else None)
+                else:
+                    last_condition = conditions.pop() if conditions else None
+                    next_conditions = self.traverse_conditions(child, for_sql = False)
+                    mongo_operator = {"and": "$and", "or": "$or", "nor": '$nor'}.get(operator)
+                    if mongo_operator and last_condition:
+                        conditions.append({mongo_operator: [last_condition] + next_conditions})
+                    elif mongo_operator:
+                        conditions.append({mongo_operator: next_conditions})
+            # multiple conditions
+            elif child.type == "CONDITION":
+               sub_conditions = self.traverse_conditions(child, for_sql)
+               if for_sql:
+                   conditions.append(f"({' '.join(sub_conditions)})")
+               else:
+                   conditions.append({"$and": sub_conditions} if len(sub_conditions) > 1 else sub_conditions[0])
+            
         return conditions
 
     def map_sql_operator(self, relation):
-        """映射 SQL 运算符"""
         return {
             "equal to": "=",
             "greater than": ">",
@@ -492,10 +673,9 @@ class CodeGenerator:
             "is not equal to": "!=",
             "greater than or equal to": ">=",
             "less than or equal to": "<="
-        }.get(relation, relation)
+        }.get(relation.lower(), relation)
 
     def map_mongo_operator(self, relation):
-        """映射 MongoDB 运算符"""
         return {
             "equal to": "$eq",
             "greater than": "$gt",
@@ -503,84 +683,61 @@ class CodeGenerator:
             "is not equal to": "$ne",
             "greater than or equal to": "$gte",
             "less than or equal to": "$lte"
-        }.get(relation, relation)
+        }.get(relation.lower(), relation)
+    
 
-# 测试语法分析器
-'''
-if __name__ == "__main__":
+# The main function
+def main():
+    # Step 1: Input data for testing
+    
+    nosql_file_path = "../Database/NoSQL/sampleCultureProducts.json"  # Replace with your test JSON file path
 
-    # 测试 Token 输入
-    tokens: List[Token] = [
-        Token("KEYWORD", "search for"),
-        Token("FIELD", "id"),
-        Token("RELATION", "equal to"),
-        Token("VALUE", "123"),
-        Token("FIELD", "price"),
-        Token("RELATION", "greater than"),
-        Token("VALUE", "50")
-    ]
 
-    parser = Parser(tokens)
-    ast = parser.parse()
-    print(ast)
-'''
-
-# 测试输入
-if __name__ == "__main__":
-    '''
-    print("test begin")
-    tokens = [
-        Token("KEYWORD", "search for"),
-        Token("FIELD", "id"),
-        Token("RELATION", "equal to"),
-        Token("VALUE", "123"),
-        Token("LOGICAL_OPERATOR", "and"),
-        Token("FIELD", "price"),
-        Token("RELATION", "greater than"),
-        Token("VALUE", "50")
-    ]
-    parser = Parser(tokens)
-    ast = parser.parse()
-    print(ast)
-    print("test end")
-    '''
-    #路径
-    path = "items.csv"
-    my_target= generate_separate_symbol_tables(path)
-    #输入
-    input_query = "search for items where id equal to 123 and price greater than 50"
-    print("input_query:")
-    print(input_query)
-    #词法分析模块
-    tokens = lexical_analysis(input_query)
-    print("\nlexical analysis:")
-    for i in tokens:
-        if i.type!="INVALID":
-            print(i)
-    print(tokens)
-    #语法分析模块
-    print("\nsyntax analysis:")
-    parser = Parser(tokens)
-    #print(parser)
-    ast = parser.parse()
-    print(ast)
-    #语义分析模块
-    print("\nsemantic analysis:")
-    analyzer = SemanticAnalyzer(symbol_table, my_target)
+    # Step 2: Load the symbol table and select SQL or NoSQL
     try:
-        analyzer.analyze(ast)
-        print("Semantic analysis passed. The query is valid.")
+        target = generate_separate_symbol_tables(nosql_file_path)  # or nosql_file_path
+        print(f"Target detected: {target}")
+        print(f"Symbol Table: {symbol_table}")
+    except ValueError as e:
+        print(f"Error loading symbol table: {e}")
+        return
+
+    # Step 3: Lexical analysis
+    input_query = "search for product whose title is equal to Handcrafted Indian Pashmina Shawl and its options contains color"
+    tokens = lexical_analysis(input_query)
+    print(f"Tokens: {tokens}")
+
+    # Step 4: Parsing
+    parser = Parser(tokens)
+    try:
+        ast = parser.parse()
+        print(f"Abstract Syntax Tree (AST): {ast}")
+    except SyntaxError as e:
+        print(f"Parsing error: {e}")
+        return
+
+    # Step 5: Semantic analysis
+    semantic_analyzer = SemanticAnalyzer(symbol_table, target)
+    try:
+        semantic_analyzer.analyze(ast)
+        print("Semantic analysis passed.")
     except SemanticError as e:
-        print(f"Semantic Error: {e}")
-    #代码生成模块
-    print("\ncode generator")
-    # 生成 SQL 查询
-    sql_generator = CodeGenerator(target=my_target)
-    sql_query = sql_generator.generate(ast)
-    print("Generated SQL Query:")
-    print(sql_query)
-    # 生成 MongoDB 查询
-    mongo_generator = CodeGenerator(target="MongoDB")
-    mongo_query = mongo_generator.generate(ast)
-    print("\nGenerated MongoDB Query:")
-    print(mongo_query)
+        print(f"Semantic analysis error: {e}")
+        return
+
+    # Step 6: Query generation
+    code_generator = CodeGenerator(target)
+    try:
+        if target == "SQL":
+            sql_query = code_generator.generate(ast, table_name="users", operation="SELECT")
+            print(f"Generated SQL Query: {sql_query}")
+        elif target == "NoSQL":
+            mongo_query = code_generator.generate(ast, table_name="users", operation="FIND")
+            print(f"Generated NoSQL Query: {mongo_query}")
+    except ValueError as e:
+        print(f"Query generation error: {e}")
+        return
+
+if __name__ == "__main__":
+    main()
+
