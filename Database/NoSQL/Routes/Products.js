@@ -2,13 +2,16 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 
+const productsCollection = require('../Models/Products');
+
 mongoose.connect('mongodb+srv://zih:GCNipWIV7i1eeWdv@cluster0.3u4hg.mongodb.net/sampleCultureProduct', {
     useNewUrlParser: true,
     useUnifiedTopology: true
-}).then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('Failed to connect to MongoDB', err));
+})
+.then(() => console.log('Connected to MongoDB'))
+.catch(err => console.error('Failed to connect to MongoDB', err));
 
-const productsCollection = require('../Models/Products');
+
 
 
 /* GET Endpoints */
@@ -38,6 +41,7 @@ router.get('/:shopifyID', async (req, res) => {
      }
 });
 
+// required
 // get a specific product based on title and vendor
 router.get('/title/:title/vendor/:vendor', async (req, res) => {
     try {
@@ -112,6 +116,7 @@ router.get('/productType/:productType', async (req, res) => {
 
 });
 
+//required
 // retrieve all options of the product based on the title and the vendor
 router.get('/title/:title/vendor/:vendor/options', async (req, res) => {
     try {
@@ -133,6 +138,7 @@ router.get('/title/:title/vendor/:vendor/options', async (req, res) => {
        })
     }
 });
+
 
 // retrieve a specific option of the product based on the title, vendor, and optionID, such as size, color, and materials
 router.get('/title/:title/vendor/:vendor/options/:optionID', async (req, res) => {
