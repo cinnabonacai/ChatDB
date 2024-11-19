@@ -1,6 +1,7 @@
 import re
 from typing import List, Tuple, Dict, Any
 import json, csv
+import os
 
 #词法分析模块
 # 定义 Token 类型 [The token is defined.]
@@ -248,9 +249,26 @@ class Parser:
 
 
     def parse(self):
-        # After all tokens are processed, it is required to return all queries.
-        return self.query()
-
+        token = self.current_token()
+        if token is None:
+            raise SyntaxError("No input to parse.")
+        if token.type != "KEYWORD":
+            raise SyntaxError(f"Expected a KEYWORD at the beginning, but got {token.type}")
+        verb = token.value.lower()
+        if verb in ['search for', 'look for', 'get', 'retrieve', 'find', 'select', 'query', 'fetch', 'read', 'access', 'filter', 'extract', 'look up', 'match']:
+            return self.parse_select_query()
+        elif verb in ['insert into', 'add', 'create', 'insert']:
+            return self.parse_insert_query()
+        elif verb in ['update', 'modify', 'set']:
+            print("updated")
+            return self.parse_update_query()
+        elif verb in ['delete from', 'remove', 'erase']:
+            return self.parse_delete_query()
+        elif verb in ['group by', 'aggregate', 'sum', 'count', 'avg', 'min', 'max', 'distinct']:
+            return self.parse_aggregate_query()
+        else:
+            raise SyntaxError(f"Unknown operation: {verb}")
+    '''
     def query(self):
         """It is related to the two child nodes of the query: (1) verb[select, find, filter, ....] (2) condition [age = 20, name = 'Smith']"""
         verb_node = self.verb()
@@ -258,6 +276,100 @@ class Parser:
         condition_node = self.condition()
         #return ASTNode("QUERY", [verb_node, object_node, condition_node])
         return ASTNode("QUERY", [verb_node, condition_node])
+    '''
+    
+    def parse_select_query(self):
+        verb_node = self.verb()
+        condition_node = self.condition()
+        return ASTNode("SELECT_QUERY", [verb_node, condition_node])
+
+    def parse_insert_query(self):
+        verb_node = self.consume("KEYWORD")  # insert into
+        # 可能存在 'into' 关键字
+        if self.current_token() and self.current_token().value.lower() == 'into':
+            self.consume("RELATION")  # Consume 'into'
+        table_node = self.consume("FIELD")  # Table name
+        # 可能存在 'values' 关键字
+        if self.current_token() and self.current_token().value.lower() == 'values':
+            self.consume("RELATION")  # Consume 'values'
+        values_node = self.parse_values()
+        return ASTNode("INSERT_QUERY", [verb_node, table_node, values_node])
+
+    def parse_values(self):
+        values = []
+        while self.current_token() and self.current_token().type == "VALUE":
+            value_node = self.consume("VALUE")
+            values.append(ASTNode("VALUE", value=value_node.value))
+            if self.current_token() and self.current_token().value == ',':
+                self.consume()  # Consume comma
+            else:
+                break
+        return ASTNode("VALUES", values)
+    
+    def parse_update_query(self):
+        verb_node = self.consume("KEYWORD")  # update
+        table_node = self.consume("TABLE_NAME")  # field name
+        print("My verb is: ", verb_node)
+        print("My table is: ", table_node)
+        # Expect 'set'
+        if self.current_token() and self.current_token().value.lower() == 'set':
+            self.consume("RELATION")  # Consume 'set'
+        else:
+            raise SyntaxError("Expected 'set' in update statement")
+        set_clause = self.parse_set_clause()
+        #不判断，直接加上condition node
+        condition_node = self.condition()
+        '''用where判断
+        condition_node = None
+        if self.current_token() and self.current_token().value.lower() == 'where':
+            self.consume("RELATION")  # Consume 'where'
+            condition_node = self.condition()
+        print("condition node")
+        print(condition_node)
+        print("condition node")
+        '''
+        return ASTNode("UPDATE_QUERY", [verb_node, table_node, set_clause, condition_node])
+
+    def parse_set_clause(self):
+        updates = []
+        while True:
+            field_node = self.consume("FIELD")
+            relation_node = self.consume("RELATION")  # Expect '=' or 'equal to'
+            if relation_node.value not in ['=', 'equal to']:
+                raise SyntaxError("Expected '=' in set clause")
+            value_node = self.consume("VALUE")
+            updates.append(ASTNode("UPDATE_PAIR", [field_node, value_node]))
+            if self.current_token() and self.current_token().value == ',':
+                self.consume()  # Consume comma
+            else:
+                break
+        return ASTNode("SET_CLAUSE", updates)
+
+    def parse_delete_query(self):
+        verb_node = self.consume("KEYWORD")  # delete from
+        # 可能存在 'from' 关键字
+        if self.current_token() and self.current_token().value.lower() == 'from':
+            self.consume("RELATION")  # Consume 'from'
+        table_node = self.consume("FIELD")  # Table name
+        condition_node = None
+        if self.current_token() and self.current_token().value.lower() == 'where':
+            self.consume("RELATION")  # Consume 'where'
+            condition_node = self.condition()
+        return ASTNode("DELETE_QUERY", [verb_node, table_node, condition_node])
+
+    def parse_aggregate_query(self):
+        verb_node = self.consume("KEYWORD")  # aggregate function like sum, count, etc.
+        field_node = self.consume("FIELD")
+        # 可能存在 'from' 关键字
+        if self.current_token() and self.current_token().value.lower() == 'from':
+            self.consume("RELATION")  # Consume 'from'
+        table_node = self.consume("FIELD")  # Table name
+        condition_node = None
+        if self.current_token() and self.current_token().value.lower() == 'where':
+            self.consume("RELATION")  # Consume 'where'
+            condition_node = self.condition()
+        return ASTNode("AGGREGATE_QUERY", [verb_node, field_node, table_node, condition_node])
+
 
     # look for all words that are related to the keyword
     def verb(self):
@@ -322,8 +434,8 @@ class SemanticAnalyzer:
             raise ValueError("Target must be 'SQL' or 'NoSQL'")
         
         # If my result type is query, then I will analyze the query.
-        if ast.type == "QUERY":
-            print("Is it Query?")
+        if ast.type == "QUERY" or ast.type == "SELECT_QUERY" or ast.type == "DELETE_QUERY" or ast.type == "INSERT_QUERY" or ast.type == "UPDATE_QUERY" or ast.type == "AGGREGATE_QUERY":
+            print("It is Query.")
             return self.analyze_query(ast)
         else:
             raise SemanticError(f"Unsupported AST node type: {ast.type}")
@@ -335,7 +447,7 @@ class SemanticAnalyzer:
             # PENDING: If the type of the child is verb, we need to check whether it is valid.
 
             # If these are conditions, it is required to analyze their conditions
-            if child.type == "CONDITION":
+            if child and child.type == "CONDITION":
                 print("Check condition")
                 self.analyze_condition(child)
 
@@ -452,7 +564,7 @@ class CodeGenerator:
      # It's time to generate the query based on Abstract Syntax Tree
      # PENDING: The name of the table needs to be modified based on the table name.
     def generate(self, ast, table_name="items", operation="SELECT", **kargs):
-        if ast.type == "QUERY":
+        if ast.type == "QUERY" or ast.type == "SELECT_QUERY" or ast.type == "DELETE_QUERY" or ast.type == "INSERT_QUERY" or ast.type == "UPDATE_QUERY" or ast.type == "AGGREGATE_QUERY":
             if self.target == "SQL":
                 return self.generate_sql(ast, table_name, operation, **kargs)
             elif self.target == "NoSQL":
@@ -462,14 +574,13 @@ class CodeGenerator:
    
     def generate_sql(self, ast, table_name, operation="SELECT", **kwargs):
         condition_node = next(child for child in ast.children if child.type == "CONDITION")
-        if operation == "SELECT":
+        if ast.type == "SELECT_QUERY":
             columns = kwargs.get("columns", "*")
             joins = kwargs.get("joins", [])
             group_by = kwargs.get("group_by")
             having = kwargs.get("having")
             order_by = kwargs.get("order_by")
             sort_order = kwargs.get("sort_order", "ASC")
-
             query = f"SELECT {columns} FROM {table_name}"
             for join in joins:
                 join_table = join.get("table")
@@ -493,7 +604,7 @@ class CodeGenerator:
                 query += f" ORDER BY {order_by} {sort_order}"
             
             return query + ";"
-        elif operation == "INSERT":
+        elif ast.type == "INSERT_QUERY":
             fields = kwargs.get("fields", []) # extract the specific field at my table. For instance "id" "name" "price"
             values = kwargs.get("values", []) # extract the values associated with this specific field "98076" "Sam" 27.4 
             if not fields or not values:
@@ -505,7 +616,7 @@ class CodeGenerator:
             fields_str = ", ".join(fields) # "id", "name", "price"
             values_str = ", ".join(f"'{v}'" for v in values) # 98076, "Sam", 27.4
             return f"INSERT INTO {table_name} ({fields_str}) VALUES ({values_str});"
-        elif operation == "UPDATE":
+        elif ast.type == "UPDATE_QUERY":
             updates = kwargs.get("updates", {})
             if not updates:
                 raise ValueError("UPDATE requires 'updates'")
@@ -520,7 +631,7 @@ class CodeGenerator:
                 query += f" WHERE {' '.joins(conditions)}"
             
             return query + ";"
-        elif operation == "DELETE":
+        elif ast.type == "DELETE_QUERY":
             joins = kwargs.get("joins", [])
             query = f"DELETE FROM {table_name}"
 
@@ -551,29 +662,30 @@ class CodeGenerator:
 
     # Pending: implement various kinds of NoSQL queries
     #          Solve the question based on the NoSQL query
-    def generate_mongo(self, condition_node, table_name, operation="FIND", **kwargs):
-        if operation == "FIND":
-            conditions = self.traverse_conditions(condition_node, for_sql=False)
-            projection = kwargs.get("projection")
-            sort = kwargs.get("sort")
-            skip = kwargs.get("skip", 0)
-            limit = kwargs.get("limit", 0)
-
-            query = {"$and": conditions} if len(conditions) > 1 else conditions[0]
+    def generate_mongo(self, ast, table_name, operation="FIND", **kwargs):
+        if ast.type == "SELECT_QUERY":
+            conditions = self.traverse_conditions(ast, for_sql=False)
+            ##projection = kwargs.get("projection")
+            ##sort = kwargs.get("sort")
+            ##skip = kwargs.get("skip", 0)
+            ##limit = kwargs.get("limit", 0)
+            query=conditions
+            print(f"search: {query}")
+            #query = {"$and": conditions} if len(conditions) > 1 else conditions[0]
             mongo_query = f"db.{table_name}.find({query})"
 
-            if projection:
-                mongo_query += f", {projection}"
-            mongo_query += ")"
+            ##if projection:
+                ##mongo_query += f", {projection}"
+            ##mongo_query += ")"
 
-            if sort:
-                mongo_query += f".sort({sort})"
-            if skip > 0:
-                mongo_query += f".skip({skip})"
-            if limit > 0:
-                mongo_query += f".limit({limit})"
+            ##if sort:
+                ##mongo_query += f".sort({sort})"
+            ##if skip > 0:
+                ##mongo_query += f".skip({skip})"
+            ##if limit > 0:
+                ##mongo_query += f".limit({limit})"
             return mongo_query + ";"
-        elif operation == "INSERT":
+        elif ast.type == "INSERT_QUERY":
             documents = kwargs.get("documents", [])
             if not documents:
                 raise ValueError("INSERT requires 'documents' to be provided")
@@ -582,32 +694,47 @@ class CodeGenerator:
                 return f"db.{table_name}.insertMany({json.dump(documents)});"
             else: 
                 return f"db.{table_name}.insertOne({json.dump(documents)});"
-        elif operation == "UPDATE":
-            updates = kwargs.get("updates")
-            if not updates:
-                raise ValueError("UPDATE requires 'updates' to be provided.")
-            update_many = kwargs.get("update_many", False)
-            query = {"$and": conditions} if len(conditions) > 1 else conditions[0]
+        elif ast.type == "UPDATE_QUERY":
+            # Extract SET clause and conditions from the AST
+            set_clause_node = next(child for child in ast.children if child and child.type == "SET_CLAUSE")
+            condition_node = next((child for child in ast.children if child and child.type == "CONDITION"), None)
+
+            # Process SET clause
+            updates = {}
+            for update_pair in set_clause_node.children:
+                field_node, value_node = update_pair.children
+                updates[field_node.value] = value_node.value.strip("'\"")  # Remove quotes
+
+            # Process WHERE conditions
+            query = {}
+            if condition_node:
+                conditions = self.traverse_conditions(condition_node, for_sql=False)
+                query = conditions
+                #query = {"$and": conditions} if len(conditions) > 1 else conditions[0]
+                #print(f"conditions: {conditions}")
+                #print(f"query: {query}")
+
+            # Generate the MongoDB update query
+            #update_many = kwargs.get("update_many", False)  # Optional: control updateOne or updateMany
+            update_many=True
             update_query = f"db.{table_name}."
-            update_query += "updatedMany" if update_many else "updateOne"
-            update_query += f"({query}, {json.dumps({'$set': updates})});"
-            
+            update_query += "updateMany" if update_many else "updateOne"
+            update_query += f"({json.dumps(query)}, {json.dumps({'$set': updates})});"
             return update_query
         
-        elif operation == "DELETE":
+        elif ast.type == "DELETE_QUERY":
             delete_many = kwargs.get("delete_many", False)
             query = {"$and": conditions} if len(conditions) > 1 else conditions[0]
             delete_query = f"db.{table_name}."
             delete_query += "deleteMany" if delete_many else "deleteOne"
             delete_query += f"{{query}};"
-
             return delete_query
         
-        elif operation == "AGGREGATE":
+        elif ast.type == "AGGREGATE_QUERY":
             pipeline = []
 
-            if condition_node:
-                conditions = self.traverse_conditions(condition_node, for_sql=False)
+            if ast:
+                conditions = self.traverse_conditions(ast, for_sql=False)
                 match_stage = {'$match': {'$and': conditions} if len(conditions) > 1 else conditions[0]}
                 pipeline.append(match_stage)
             
@@ -625,9 +752,11 @@ class CodeGenerator:
     def traverse_conditions(self, node, for_sql=True):
         # implement variouus conditions to resolve each type
         conditions = []
+        print(f"node children: {node.children}")
         for child in node.children:
             # single condition: >, <, =, !=, >=, <=
             if child.type == "SINGLE_CONDITION":
+                print("SINGLE_CONDITION")
                 field = child.children[0].value
                 relation = child.children[1].value
                 value = child.children[2].value
@@ -643,6 +772,7 @@ class CodeGenerator:
                     conditions.append({ field: { mongo_operator: value } })
             # logical operator: and, or, nor
             elif child.type == "LOGICAL_OPERATOR":
+                print("LOGICAL_OPERATOR")
                 operator = child.value.lower()
                 if for_sql:
                     conditions.append(child.value.upper())
@@ -651,17 +781,24 @@ class CodeGenerator:
                     next_conditions = self.traverse_conditions(child, for_sql = False)
                     mongo_operator = {"and": "$and", "or": "$or", "nor": '$nor'}.get(operator)
                     if mongo_operator and last_condition:
+                        print("1")
+                        print(f"last condition{last_condition}")
+                        print(f"next condition{next_conditions}")
                         conditions.append({mongo_operator: [last_condition] + next_conditions})
+                        print("append end")
                     elif mongo_operator:
+                        print("2")
                         conditions.append({mongo_operator: next_conditions})
             # multiple conditions
             elif child.type == "CONDITION":
+               print("CONDITION")
                sub_conditions = self.traverse_conditions(child, for_sql)
+               print(f"sub_conditions: {sub_conditions}")
                if for_sql:
                    conditions.append(f"({' '.join(sub_conditions)})")
                else:
                    conditions.append({"$and": sub_conditions} if len(sub_conditions) > 1 else sub_conditions[0])
-            
+            print(f"traverse_conditions: {conditions}")
         return conditions
 
     def map_sql_operator(self, relation):
@@ -690,7 +827,13 @@ def main():
     # Step 1: Input data for testing
     
     nosql_file_path = "../Database/NoSQL/sampleCultureProducts.json"  # Replace with your test JSON file path
+    # 提取文件名（包括扩展名）
+    file_name_with_ext = os.path.basename(nosql_file_path)  # 输出: sampleCultureProducts.json
+    global my_table_name
+    # 去掉扩展名
+    my_table_name = os.path.splitext(file_name_with_ext)[0]  # 输出: sampleCultureProducts
 
+    print("table name is: "+my_table_name)
 
     # Step 2: Load the symbol table and select SQL or NoSQL
     try:
@@ -703,23 +846,24 @@ def main():
     
     global TOKEN_RULES
     TOKEN_RULES = [
-    ("KEYWORD", r"\b(search for|look for|get|retrieve|find|select|query|fetch|read|access|filter|extract|look up|match)\b"),  # 动词[verbs]
-    ("RELATION", r"\b(equal to|greater than|less than|not equal to|greater than or equal to|less than or equal to|>=|<=|>|<|!=)\b"),  # 关系运算符[relational operators]
+    ("KEYWORD", r"\b(search for|find|select|insert|add|append|create|put|write|store|include|populate|update|modify|edit|change|alter|refresh|adjust|correct|revise|replace|delete|remove|erase|clear|drop|destroy|truncate|discard|sum|count|avg|min|max)\b"),
+    ("RELATION", r"\b(equal to|greater than|less than|not equal to|greater than or equal to|less than or equal to|set|>=|<=|>|<|!=)\b"),  # 关系运算符[relational operators]
     ("FIELD", generate_field_patterns(symbol_table)),  # 字段名[fields]  # Pending: change it into the specific fields
     #("FIELD", r"\b(_id|shopifyId|title|descriptionHTML|handle|vendor|productType|tags|options|variants|images|createdAt|updatedAt|publishedAt)\b"),
     ("LOGICAL_OPERATOR", r"\b(and|or|nor)\b"),  # 逻辑操作符[logical operators]
     #("VALUE", r"(\d+|'.*?')"),  # 数值或字符串值[string or number]
     ("VALUE", r"(\d+|'.*?'|\".*?\")"),
+    ("TABLE_NAME", my_table_name),
     ("WHITESPACE", r"\s+"),  # 空格（可以跳过） [whitespace]
     ("INVALID", r".")  # 无效字符[invalid characters]
 ]
 
     # Step 3: Lexical analysis
     input_query = "aaa want to search for product whose shopifyId is equal to \"aaa\" and vendor is equal to \"High-End Boutique Shops\""
+    #input_query = "I want to update the sampleCultureProducts table to set title equal to \"Handcrafted Indian Pashmina Shawl\" and handle equal to \"HPS\" where shopifyId equal to  \"HandCrafted-Pashmina-Shawl-One\"."
+    #input_query = "I want to update the sampleCultureProducts table to set title equal to \"Handcrafted Indian Pashmina Shawl\" where shopifyId is equal to  \"HandCrafted-Pashmina-Shawl-One\" and handle is equal to \"HPS\"."
     tokens = lexical_analysis(input_query)
-
-
-   
+    print(input_query)
 
     print(f"Tokens: {tokens}")
 
@@ -745,10 +889,10 @@ def main():
     code_generator = CodeGenerator(target)
     try:
         if target == "SQL":
-            sql_query = code_generator.generate(ast, table_name="users", operation="SELECT")
+            sql_query = code_generator.generate(ast, table_name=my_table_name)
             print(f"Generated SQL Query: {sql_query}")
         elif target == "NoSQL":
-            mongo_query = code_generator.generate(ast, table_name="users", operation="FIND")
+            mongo_query = code_generator.generate(ast, table_name=my_table_name)
             print(f"Generated NoSQL Query: {mongo_query}")
     except ValueError as e:
         print(f"Query generation error: {e}")
