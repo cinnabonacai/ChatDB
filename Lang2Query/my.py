@@ -448,7 +448,7 @@ class SemanticAnalyzer:
 
             # If these are conditions, it is required to analyze their conditions
             if child and child.type == "CONDITION":
-                print("Check condition")
+                #print("Check condition")
                 self.analyze_condition(child)
 
     # For multiple conditions, each individual condition is examined properly.
@@ -456,10 +456,10 @@ class SemanticAnalyzer:
         """check the condition node"""
         for child in node.children:
             if child.type == "SINGLE_CONDITION":
-                print("Single Condition?")
+                #print("Single Condition?")
                 self.analyze_single_condition(child)
             elif child.type == "LOGICAL_OPERATOR":
-                print("Double Condition?")
+                #print("Double Condition?")
                 continue
             else:
                 raise SemanticError(f"Unexpected node type in CONDITION: {child.type}")
@@ -471,7 +471,7 @@ class SemanticAnalyzer:
         relation_node = node.children[1]
         value_node = node.children[2]
 
-        print(f"output ? {field_node}, {relation_node}, {value_node}")
+        #print(f"output ? {field_node}, {relation_node}, {value_node}")
 
         # check whether the field node is empty
         field = field_node.value
@@ -483,10 +483,10 @@ class SemanticAnalyzer:
 
         # check the expected type of its value -> [int, double, string, ...]
         expected_type = self.symbol_table[field]
-        print("The expected type is: " + expected_type)
+        #print("The expected type is: " + expected_type)
 
         value = value_node.value # [The corresponding value of this field]
-        print("My value is: " + value)
+        #print("My value is: " + value)
 
         # If both of them do not match, a semantic error will be raised.
         if not self.check_type_match(expected_type, value):
@@ -494,7 +494,7 @@ class SemanticAnalyzer:
 
         # relational operator
         relation = relation_node.value
-        print("My relation is: " + relation)
+        #print("My relation is: " + relation)
         # whether it uses and, or, nor, etc....
         #if not self.check_relation_valid(expected_type, relation):
             #raise SemanticError(f"Relation operator '{relation}' is not valid for field '{field}' with type '{expected_type}'.")
@@ -752,16 +752,16 @@ class CodeGenerator:
     def traverse_conditions(self, node, for_sql=True):
         # implement variouus conditions to resolve each type
         conditions = []
-        print(f"111   my node: {node}")
-        print(f"222   my children: {node.children}")
+        #print(f"111   my node: {node}")
+        #print(f"222   my children: {node.children}")
         #for child in node.children:
         #for i in range(len(node.children)):
         i=0
         while i<len(node.children):
-            print(f"node.children[{i}]: {node.children[i]}")
+            #print(f"node.children[{i}]: {node.children[i]}")
             # single condition: >, <, =, !=, >=, <=
             if node.children[i].type == "SINGLE_CONDITION":
-                print("SINGLE_CONDITION")
+                #print("SINGLE_CONDITION")
                 field = node.children[i].children[0].value
                 relation = node.children[i].children[1].value
                 value = node.children[i].children[2].value
@@ -777,7 +777,7 @@ class CodeGenerator:
                     conditions.append({ field: { mongo_operator: value } })
             # logical operator: and, or, nor
             elif node.children[i].type == "LOGICAL_OPERATOR":
-                print("LOGICAL_OPERATOR")
+                #print("LOGICAL_OPERATOR")
                 operator = node.children[i].value.lower()
                 if for_sql:
                     conditions.append(node.children[i].value.upper())
@@ -785,25 +785,25 @@ class CodeGenerator:
                     last_condition = conditions.pop() if conditions else None
                     my_next=ASTNode("RIGHT_VALUE", [node.children[i+1]])
                     i=i+1
-                    print(f"my next: {my_next}")
+                    #print(f"my next: {my_next}")
                     next_conditions = self.traverse_conditions(my_next, for_sql = False)
                     #next_conditions = self.traverse_conditions(node.children[i+1], for_sql = False)
                     mongo_operator = {"and": "$and", "or": "$or", "nor": '$nor'}.get(operator)
                     if mongo_operator and last_condition:
-                        print("1")
-                        print(f"last condition{last_condition}")
-                        print(f"next condition{next_conditions}")
+                        #print("1")
+                        #print(f"last condition{last_condition}")
+                        #print(f"next condition{next_conditions}")
                         #conditions.append(last_condition)
                         conditions.append({mongo_operator: [last_condition] + next_conditions})
-                        print("append end")
+                        #print("append end")
                     elif mongo_operator:
-                        print("2")
+                        #print("2")
                         conditions.append({mongo_operator: next_conditions})
             # multiple conditions
             elif node.children[i].type == "CONDITION":
-               print("CONDITION")
+               #print("CONDITION")
                sub_conditions = self.traverse_conditions(node.children[i], for_sql)
-               print(f"sub_conditions: {sub_conditions}")
+               #print(f"sub_conditions: {sub_conditions}")
                if for_sql:
                     conditions.append(f"({' '.join(sub_conditions[0])})")
                else:
@@ -813,7 +813,7 @@ class CodeGenerator:
                         #conditions.append({mongo_operator: sub_conditions} if len(sub_conditions) > 1 else sub_conditions[0])
                     #else:
                         #conditions.append(sub_conditions)
-            print(f"traverse_conditions: {conditions}")
+            #print(f"traverse_conditions: {conditions}")
             i=i+1
         return conditions
 
