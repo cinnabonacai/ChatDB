@@ -669,7 +669,7 @@ class CodeGenerator:
             ##sort = kwargs.get("sort")
             ##skip = kwargs.get("skip", 0)
             ##limit = kwargs.get("limit", 0)
-            query=conditions
+            query=conditions[0]
             print(f"search: {query}")
             #query = {"$and": conditions} if len(conditions) > 1 else conditions[0]
             mongo_query = f"db.{table_name}.find({query})"
@@ -709,7 +709,7 @@ class CodeGenerator:
             query = {}
             if condition_node:
                 conditions = self.traverse_conditions(condition_node, for_sql=False)
-                query = conditions
+                query = conditions[0]
                 #query = {"$and": conditions} if len(conditions) > 1 else conditions[0]
                 #print(f"conditions: {conditions}")
                 #print(f"query: {query}")
@@ -752,14 +752,19 @@ class CodeGenerator:
     def traverse_conditions(self, node, for_sql=True):
         # implement variouus conditions to resolve each type
         conditions = []
-        print(f"node children: {node.children}")
-        for child in node.children:
+        print(f"111   my node: {node}")
+        print(f"222   my children: {node.children}")
+        #for child in node.children:
+        #for i in range(len(node.children)):
+        i=0
+        while i<len(node.children):
+            print(f"node.children[{i}]: {node.children[i]}")
             # single condition: >, <, =, !=, >=, <=
-            if child.type == "SINGLE_CONDITION":
+            if node.children[i].type == "SINGLE_CONDITION":
                 print("SINGLE_CONDITION")
-                field = child.children[0].value
-                relation = child.children[1].value
-                value = child.children[2].value
+                field = node.children[i].children[0].value
+                relation = node.children[i].children[1].value
+                value = node.children[i].children[2].value
                 if for_sql:
                     # If it is SQL, convert it into SQL
                     if isinstance(value, str) and not value.isdigit():
@@ -771,34 +776,45 @@ class CodeGenerator:
                     mongo_operator = self.map_mongo_operator(relation)
                     conditions.append({ field: { mongo_operator: value } })
             # logical operator: and, or, nor
-            elif child.type == "LOGICAL_OPERATOR":
+            elif node.children[i].type == "LOGICAL_OPERATOR":
                 print("LOGICAL_OPERATOR")
-                operator = child.value.lower()
+                operator = node.children[i].value.lower()
                 if for_sql:
-                    conditions.append(child.value.upper())
+                    conditions.append(node.children[i].value.upper())
                 else:
                     last_condition = conditions.pop() if conditions else None
-                    next_conditions = self.traverse_conditions(child, for_sql = False)
+                    my_next=ASTNode("RIGHT_VALUE", [node.children[i+1]])
+                    i=i+1
+                    print(f"my next: {my_next}")
+                    next_conditions = self.traverse_conditions(my_next, for_sql = False)
+                    #next_conditions = self.traverse_conditions(node.children[i+1], for_sql = False)
                     mongo_operator = {"and": "$and", "or": "$or", "nor": '$nor'}.get(operator)
                     if mongo_operator and last_condition:
                         print("1")
                         print(f"last condition{last_condition}")
                         print(f"next condition{next_conditions}")
+                        #conditions.append(last_condition)
                         conditions.append({mongo_operator: [last_condition] + next_conditions})
                         print("append end")
                     elif mongo_operator:
                         print("2")
                         conditions.append({mongo_operator: next_conditions})
             # multiple conditions
-            elif child.type == "CONDITION":
+            elif node.children[i].type == "CONDITION":
                print("CONDITION")
-               sub_conditions = self.traverse_conditions(child, for_sql)
+               sub_conditions = self.traverse_conditions(node.children[i], for_sql)
                print(f"sub_conditions: {sub_conditions}")
                if for_sql:
-                   conditions.append(f"({' '.join(sub_conditions)})")
+                    conditions.append(f"({' '.join(sub_conditions[0])})")
                else:
-                   conditions.append({"$and": sub_conditions} if len(sub_conditions) > 1 else sub_conditions[0])
+                    conditions.append(sub_conditions[0])
+                    #conditions.append({"$and": sub_conditions} if len(sub_conditions) > 1 else sub_conditions[0])
+                    #if mongo_operator:
+                        #conditions.append({mongo_operator: sub_conditions} if len(sub_conditions) > 1 else sub_conditions[0])
+                    #else:
+                        #conditions.append(sub_conditions)
             print(f"traverse_conditions: {conditions}")
+            i=i+1
         return conditions
 
     def map_sql_operator(self, relation):
@@ -859,9 +875,9 @@ def main():
 ]
 
     # Step 3: Lexical analysis
-    input_query = "aaa want to search for product whose shopifyId is equal to \"aaa\" and vendor is equal to \"High-End Boutique Shops\""
+    #input_query = "aaa want to search for product whose shopifyId is equal to \"aaa\" and vendor is equal to \"High-End Boutique Shops\""
     #input_query = "I want to update the sampleCultureProducts table to set title equal to \"Handcrafted Indian Pashmina Shawl\" and handle equal to \"HPS\" where shopifyId equal to  \"HandCrafted-Pashmina-Shawl-One\"."
-    #input_query = "I want to update the sampleCultureProducts table to set title equal to \"Handcrafted Indian Pashmina Shawl\" where shopifyId is equal to  \"HandCrafted-Pashmina-Shawl-One\" and handle is equal to \"HPS\"."
+    input_query = "I want to update the sampleCultureProducts table to set title equal to \"Handcrafted Indian Pashmina Shawl\" where shopifyId is equal to  \"HandCrafted-Pashmina-Shawl-One\" and handle is equal to \"HPS\"."
     tokens = lexical_analysis(input_query)
     print(input_query)
 
