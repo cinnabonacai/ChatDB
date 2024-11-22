@@ -3,6 +3,17 @@ from typing import List, Tuple, Dict, Any
 import json, csv
 import os
 
+my_table_names = []
+
+def process_table_names(file_paths):
+    global my_table_names
+    my_table_names = []
+    for path in file_paths:
+        file_name_with_ext = os.path.basename(path)
+        table_name = os.path.splitext(file_name_with_ext)[0]
+        my_table_names.append(table_name)
+    print("Table names are: ", my_table_names)
+
 #词法分析模块
 # 定义 Token 类型 [The token is defined.]
 class Token:
@@ -100,9 +111,11 @@ def detect_field_types_from_csv(file_path: str) -> Dict[str, str]:
 
 def detect_field_types_from_json(file_path: str) -> Dict[str, str]:
     # Detect Specific Fields from JSON
+    
     with open(file_path, "r", encoding="utf-8") as f:
+        #data = [json.loads(line) for line in f if line.strip()]
         data = json.load(f)
-
+        #print(data)
         if isinstance(data, dict):
             # Root is a dictionary
             field_types = {}
@@ -127,11 +140,42 @@ def detect_field_types_from_json(file_path: str) -> Dict[str, str]:
         else:
             raise ValueError("Unsupported JSON structure. Expected a dictionary or a list.")
       
+#symbol_table: Dict[str, str] = {} 
+symbol_table: Dict[str, Dict[str, str]] = {}  # 支持多个表格的 symbol_table
 
-symbol_table: Dict[str, str] = {} 
+def generate_separate_symbol_tables(paths: List[str]) -> str:
+    """
+    根据提供的路径列表生成 symbol_table，支持多个表。
+    返回数据库类型：SQL 或 NoSQL。
+    """
+    global symbol_table
+    symbol_table = {}  # 清空 symbol_table
+    
+    db_type = None  # 用于存储数据库类型
+    for path in paths:
+        print("My current path is: ", path)
+        if path.endswith('.csv'):
+            table_name = os.path.splitext(os.path.basename(path))[0]
+            symbol_table[table_name] = detect_field_types_from_csv(path)
+            db_type = "SQL" if db_type is None else db_type
+        elif path.endswith('.json'):
+            table_name = os.path.splitext(os.path.basename(path))[0]
+            print("My current table is: ", table_name)
+            symbol_table[table_name] = detect_field_types_from_json(path)
+            print("My cvurrent symbol table is: ", symbol_table[table_name])
+            db_type = "NoSQL" if db_type is None else db_type
+        else:
+            raise ValueError(f"Unsupported file format: {path}")
+    
+    if not symbol_table:
+        raise ValueError("No valid files provided to generate symbol table.")
+    
+    return db_type  # 返回检测到的数据库类型
 
+'''
 def generate_separate_symbol_tables(path: str) -> None:
      global symbol_table 
+
      if path.endswith('.csv'):
         symbol_table = detect_field_types_from_csv(path)
         return "SQL"
@@ -140,14 +184,41 @@ def generate_separate_symbol_tables(path: str) -> None:
         return "NoSQL"
      else:
         raise ValueError("Unsupported file format. Please provide a CSV or JSON file.")
+'''
 
 # the rules for tokens:
-def generate_field_patterns(table_selected):
-    escaped_fields = [re.escape(field) for field in table_selected.keys()]
+def generate_field_patterns(symbol_table):
+    # Extract all unique field names across all tables
+    unique_fields = set()
+    for table_fields in symbol_table.values():
+        unique_fields.update(table_fields.keys())
+    # Escape the field names for regex patterns
+    escaped_fields = [re.escape(field) for field in unique_fields]
+    # Join the patterns with '|' to maintain the original return format
     fields_pattern = "|".join(escaped_fields)
     return fields_pattern
 
+def generate_field_patterns2(table_selected):
+    escaped_fields = [re.escape(field) for field in table_selected]
+    fields_pattern = "|".join(escaped_fields)
+    return fields_pattern
 
+def insert_into_field(value):
+    print("The value to be added: ", value)
+    for i, rule in enumerate(TOKEN_RULES):
+        if rule[0] == "FIELD":
+            # 提取当前字段的正则表达式
+            current_fields_pattern = rule[1]
+            # 从现有正则表达式提取字段列表（假设是用 | 分隔）
+            current_fields = re.findall(r"\b\w+\b", current_fields_pattern)
+            # 合并现有字段和新的字段
+            updated_fields = sorted(set(current_fields+[value]))
+            # 重新生成正则表达式
+            updated_pattern = r"\b(" + "|".join(updated_fields) + r")\b"
+            # 更新规则
+            TOKEN_RULES[i] = ("FIELD", updated_pattern)
+            break
+    
 
 # the construction of lexical analysus
 def lexical_analysis(input_text: str) -> List[Token]:
@@ -155,7 +226,7 @@ def lexical_analysis(input_text: str) -> List[Token]:
     tokens = []
     # start at position 0
     pos = 0
-
+    my_match = []
     # iterate your input one by one
     while pos < len(input_text):
 
@@ -167,9 +238,11 @@ def lexical_analysis(input_text: str) -> List[Token]:
             # compile the pattern
             regex = re.compile(pattern)  # e.g. Search for, Look Up, etc.
             match = regex.match(input_text, pos) # match the input text with the pattern
-            
+
             # If it is fitted, a total of three possibilities will be considered in advance
             if match:
+               
+
                 # whitespace
                 if token_type == "WHITESPACE":  # whitespace
                     pos = match.end()
@@ -179,10 +252,24 @@ def lexical_analysis(input_text: str) -> List[Token]:
                     #print(f"Warning: Invalid character '{match.group(0)}' at position {pos}")
                     pos = match.end()
                     break
+                elif token_type =='VALUE':
+                    if tokens:
+                        last = tokens[len(tokens) - 1]
+                        if last.type == "GROUP_OPERATOR" and not match.group().isdigit():
+                            print("Match.groups: ",match.group())
+                            extracted_value = match.group().strip('"')
+                            insert_into_field(extracted_value)
+                            print("My updated tokens are: ", TOKEN_RULES)
+                    token_value = match.group(0)
+                    my_match.append(token_value)
+                    tokens.append(Token(token_type, token_value))
+                    pos = match.end()
+                    break
                 # the rest of the scenarios
                 else:
                     # The rest of the scenarios
                     token_value = match.group(0)
+                    my_match.append(token_value)
                     tokens.append(Token(token_type, token_value))
                     pos = match.end()
                     break
@@ -206,6 +293,8 @@ class ASTNode:
     def __repr__(self):
         # The root node
         if self.value:
+            if self.children:
+                return f"ASTNode({self.type}, {self.value}, {self.children})"
             return f"ASTNode({self.type}, {self.value})"
         
         # The children node
@@ -250,6 +339,7 @@ class Parser:
 
     def parse(self):
         token = self.current_token()
+        print("my current token is: ", token)
         if token is None:
             raise SyntaxError("No input to parse.")
         if token.type != "KEYWORD":
@@ -262,9 +352,9 @@ class Parser:
         elif verb in ['update', 'modify', 'set']:
             print("updated")
             return self.parse_update_query()
-        elif verb in ['delete from', 'remove', 'erase']:
+        elif verb in ['delete', 'delete from', 'remove', 'erase']:
             return self.parse_delete_query()
-        elif verb in ['group by', 'aggregate', 'sum', 'count', 'avg', 'min', 'max', 'distinct']:
+        elif verb in ['group by', 'aggregate', 'sum', 'count', 'avg', 'min', 'max', 'distinct', 'join', 'group', 'sort', 'unwind', 'project', 'limit', 'skip', 'lookup', 'collect', 'list', 'calculate']:
             return self.parse_aggregate_query()
         else:
             raise SyntaxError(f"Unknown operation: {verb}")
@@ -279,12 +369,18 @@ class Parser:
     '''
     
     def parse_select_query(self):
+        #1 finish
         verb_node = self.verb()
+        table_node = self.consume("TABLE_NAME")  # field name
         condition_node = self.condition()
-        return ASTNode("SELECT_QUERY", [verb_node, condition_node])
+        return ASTNode("SELECT_QUERY", [verb_node, table_node, condition_node])
 
     def parse_insert_query(self):
+        #2 finish
         verb_node = self.consume("KEYWORD")  # insert into
+        table_node = self.consume("TABLE_NAME")  # field name
+        insert_node = self.content()
+        '''
         # 可能存在 'into' 关键字
         if self.current_token() and self.current_token().value.lower() == 'into':
             self.consume("RELATION")  # Consume 'into'
@@ -294,7 +390,9 @@ class Parser:
             self.consume("RELATION")  # Consume 'values'
         values_node = self.parse_values()
         return ASTNode("INSERT_QUERY", [verb_node, table_node, values_node])
-
+        '''
+        return ASTNode("INSERT_QUERY", [verb_node, table_node, insert_node])
+        
     def parse_values(self):
         values = []
         while self.current_token() and self.current_token().type == "VALUE":
@@ -307,6 +405,7 @@ class Parser:
         return ASTNode("VALUES", values)
     
     def parse_update_query(self):
+        #3 finish
         verb_node = self.consume("KEYWORD")  # update
         table_node = self.consume("TABLE_NAME")  # field name
         print("My verb is: ", verb_node)
@@ -346,18 +445,23 @@ class Parser:
         return ASTNode("SET_CLAUSE", updates)
 
     def parse_delete_query(self):
+        #4 finish
         verb_node = self.consume("KEYWORD")  # delete from
+        table_node = self.consume("TABLE_NAME")  # field name
         # 可能存在 'from' 关键字
-        if self.current_token() and self.current_token().value.lower() == 'from':
-            self.consume("RELATION")  # Consume 'from'
-        table_node = self.consume("FIELD")  # Table name
-        condition_node = None
-        if self.current_token() and self.current_token().value.lower() == 'where':
-            self.consume("RELATION")  # Consume 'where'
-            condition_node = self.condition()
+        condition_node = self.condition()
+        #if self.current_token() and self.current_token().value.lower() == 'from':
+            #self.consume("RELATION")  # Consume 'from'
+        #table_node = self.consume("FIELD")  # Table name
+        #condition_node = None
+        #if self.current_token() and self.current_token().value.lower() == 'where':
+            #self.consume("RELATION")  # Consume 'where'
+            #condition_node = self.condition()
         return ASTNode("DELETE_QUERY", [verb_node, table_node, condition_node])
 
+    '''
     def parse_aggregate_query(self):
+        #5
         verb_node = self.consume("KEYWORD")  # aggregate function like sum, count, etc.
         field_node = self.consume("FIELD")
         # 可能存在 'from' 关键字
@@ -369,6 +473,72 @@ class Parser:
             self.consume("RELATION")  # Consume 'where'
             condition_node = self.condition()
         return ASTNode("AGGREGATE_QUERY", [verb_node, field_node, table_node, condition_node])
+    '''
+    
+    def parse_aggregate_query(self):
+        pipeline = []
+        verb_node = self.consume("KEYWORD")
+        local_collection = self.consume("TABLE_NAME").value
+
+        while self.current_token() and self.current_token().type == "AGGREGATION_OPERATOR":
+            operator = self.consume("AGGREGATION_OPERATOR")
+            stage = operator.value.lower()
+            print("my current aggregation operator: ", operator)
+            print("my stage is: ", stage)
+            # SQL operation
+            if stage == "join":
+                foreign_collection =  self.consume("TABLE_NAME").value
+                local_field = self.consume("FIELD").value
+                logical_operator = self.consume("LOGICAL_OPERATOR").value
+                foreign_field = self.consume("FIELD").value
+                as_field = self.consume("VALUE").value
+                pipeline.append({
+                    "$lookup": {
+                        "from": foreign_collection,
+                        "localField": local_field,
+                        "foreignField": foreign_field,
+                        "as": as_field
+                    }
+                })
+            elif stage == "group by":
+                group_field = self.consume("FIELD").value
+                pipeline.append({"$group": {"_id": f"${group_field}"}})
+            elif stage == "sort":
+                sort_field = self.consume("FIELD").value
+                sort_order = self.consume("SORT_OPERATOR").value
+                pipeline.append({"$sort": {sort_field: 1 if sort_order == "increasingly" else -1}})
+            elif stage == "unwind":
+                unwind_field = self.consume("FIELD").value
+                pipeline.append({"$unwind": f"${unwind_field}"})
+            elif stage == "limit":
+                limit_value = int(self.consume("VALUE").value)
+                pipeline.append({"$limit": limit_value})
+            elif stage == "skip":
+                skip_value = int(self.consume("VALUE").value)
+                pipeline.append({"$skip": skip_value})
+            elif stage == "project":
+                project_list = []
+                while self.current_token() and self.current_token().type == "FIELD":
+                    current_field = self.consume("FIELD").value
+                    project_list.append(current_field)
+                    #projection = {field: 1 for field in fields}
+                pipeline.append({"$project": project_list})
+            #NoSQL operation
+            elif stage == "group":
+                group_field = self.consume("FIELD").value  # Consume the FIELD token for the group stage
+                group_operations = []  # To store parsed group operations
+
+            # Iterate until a non-group-related token or end of the stream
+                while self.current_token().type == "GROUP_OPERATOR":
+                    current_operator = self.consume("GROUP_OPERATOR").value  # Consume the GROUP_OPERATOR token
+                    current_value = self.consume("VALUE").value  # Consume the VALUE token
+                    current_field = self.consume("FIELD").value
+                    group_operations.append({current_value:{current_operator: current_field}})
+                
+                pipeline.append(["group",group_field, group_operations])
+
+
+        return ASTNode("AGGREGATION_PIPELINE", value=local_collection, children=pipeline)
 
 
     # look for all words that are related to the keyword
@@ -393,6 +563,15 @@ class Parser:
             conditions.append(ASTNode("LOGICAL_OPERATOR", value=operator_token.value))
             conditions.append(next_condition)
         return ASTNode("CONDITION", conditions)
+    
+    def content(self):
+        content = [self.single_content()]
+        while self.current_token() and self.current_token().value in ["and", "or", "nor"]:
+            operator_token = self.consume()  # LOGICAL_OPERATOR
+            next_content = self.single_content() # figure out the next condition
+            #contents.append(ASTNode("LOGICAL_OPERATOR", value=operator_token.value))
+            content.append(next_content)
+        return ASTNode("CONTENT", content)
 
     def single_condition(self):
         # Single condition
@@ -400,6 +579,17 @@ class Parser:
         relation_node = self.relation()
         value_node = self.value()
         return ASTNode("SINGLE_CONDITION", [field_node, relation_node, value_node])
+    
+    def atom_content(self):
+        field_node = self.field()
+        value_node = self.value()
+        return ASTNode("ATOM_CONTENT", [field_node, value_node])
+    
+    def single_content(self):
+        s_content=[]
+        while self.current_token() and self.current_token().value not in ["and", "or", "nor"]:
+            s_content.append(self.atom_content())
+        return ASTNode("SINGLE_CONTENT", s_content)
 
     def field(self):
         """解析 FIELD"""
@@ -434,7 +624,7 @@ class SemanticAnalyzer:
             raise ValueError("Target must be 'SQL' or 'NoSQL'")
         
         # If my result type is query, then I will analyze the query.
-        if ast.type == "QUERY" or ast.type == "SELECT_QUERY" or ast.type == "DELETE_QUERY" or ast.type == "INSERT_QUERY" or ast.type == "UPDATE_QUERY" or ast.type == "AGGREGATE_QUERY":
+        if ast.type == "QUERY" or ast.type == "SELECT_QUERY" or ast.type == "DELETE_QUERY" or ast.type == "INSERT_QUERY" or ast.type == "UPDATE_QUERY" or ast.type == "AGGREGATION_PIPELINE":
             print("It is Query.")
             return self.analyze_query(ast)
         else:
@@ -442,22 +632,30 @@ class SemanticAnalyzer:
     
     # start from the root of the AST, both verb and conditions are examined.
     def analyze_query(self, node):
+        print("The node at analyze_query is: ", node)
+        
         """Analyze the root query node based on SQL and NoSQL"""
         for child in node.children:
+            print("child type:", type(child))
+            # only for aggregation in MongoDB
+            if isinstance(child, dict):
+                continue
             # PENDING: If the type of the child is verb, we need to check whether it is valid.
-
+            if child and child.type=="TABLE_NAME":
+                analyze_table= child.value
             # If these are conditions, it is required to analyze their conditions
             if child and child.type == "CONDITION":
                 #print("Check condition")
-                self.analyze_condition(child)
+                self.analyze_condition(child, analyze_table)
 
     # For multiple conditions, each individual condition is examined properly.
-    def analyze_condition(self, node):
+    def analyze_condition(self, node, table_name):
+        print("The node at analyze_condition method is: ", node)
         """check the condition node"""
         for child in node.children:
             if child.type == "SINGLE_CONDITION":
                 #print("Single Condition?")
-                self.analyze_single_condition(child)
+                self.analyze_single_condition(child, table_name)
             elif child.type == "LOGICAL_OPERATOR":
                 #print("Double Condition?")
                 continue
@@ -465,7 +663,8 @@ class SemanticAnalyzer:
                 raise SemanticError(f"Unexpected node type in CONDITION: {child.type}")
     
     # Each single condition is checked precisely.
-    def analyze_single_condition(self, node):
+    def analyze_single_condition(self, node, table_name):
+        print("The node analyzed: ", node)
         """examine multiple conditions"""
         field_node = node.children[0]
         relation_node = node.children[1]
@@ -478,11 +677,19 @@ class SemanticAnalyzer:
       
        
         # If the field is not in the symbol table, it is required to raise an error.
-        if field not in self.symbol_table:
+        my_check=False
+        for table_name, fields in symbol_table.items():
+            if field in fields:
+                my_check=True
+                break
+        if my_check==False:
             raise SemanticError(f"Field '{field}' is not defined in the symbol table.")
+        #if field not in self.symbol_table:
+            #raise SemanticError(f"Field '{field}' is not defined in the symbol table.")
 
         # check the expected type of its value -> [int, double, string, ...]
-        expected_type = self.symbol_table[field]
+        # print(self.symbol_table)
+        expected_type = self.symbol_table[table_name][field]
         #print("The expected type is: " + expected_type)
 
         value = value_node.value # [The corresponding value of this field]
@@ -563,16 +770,17 @@ class CodeGenerator:
      
      # It's time to generate the query based on Abstract Syntax Tree
      # PENDING: The name of the table needs to be modified based on the table name.
-    def generate(self, ast, table_name="items", operation="SELECT", **kargs):
-        if ast.type == "QUERY" or ast.type == "SELECT_QUERY" or ast.type == "DELETE_QUERY" or ast.type == "INSERT_QUERY" or ast.type == "UPDATE_QUERY" or ast.type == "AGGREGATE_QUERY":
+    def generate(self, ast):
+        #print("my generate: ", ast)
+        if ast.type == "QUERY" or ast.type == "SELECT_QUERY" or ast.type == "DELETE_QUERY" or ast.type == "INSERT_QUERY" or ast.type == "UPDATE_QUERY" or ast.type == "AGGREGATION_PIPELINE":
             if self.target == "SQL":
-                return self.generate_sql(ast, table_name, operation, **kargs)
+                return self.generate_sql(ast)
             elif self.target == "NoSQL":
-                return self.generate_mongo(ast, table_name, operation, **kargs)
+                return self.generate_mongo(ast)
         else:
             raise ValueError(f"Unsupported AST node type: {ast.type}")
    
-    def generate_sql(self, ast, table_name, operation="SELECT", **kwargs):
+    def generate_sql(self, ast, table_name="hhh", operation="SELECT", **kwargs):
         condition_node = next(child for child in ast.children if child.type == "CONDITION")
         if ast.type == "SELECT_QUERY":
             columns = kwargs.get("columns", "*")
@@ -662,8 +870,16 @@ class CodeGenerator:
 
     # Pending: implement various kinds of NoSQL queries
     #          Solve the question based on the NoSQL query
-    def generate_mongo(self, ast, table_name, operation="FIND", **kwargs):
+    def generate_mongo(self, ast):
+        print("my generate ast tree: ", ast)
+        if ast.type == "AGGREGATION_PIPELINE":
+            return f"db.{ast.value}.aggregate({ast.children});"
+        
+        
+        table_name=ast.children[1].value
+       
         if ast.type == "SELECT_QUERY":
+            # finish
             conditions = self.traverse_conditions(ast, for_sql=False)
             ##projection = kwargs.get("projection")
             ##sort = kwargs.get("sort")
@@ -686,6 +902,18 @@ class CodeGenerator:
                 ##mongo_query += f".limit({limit})"
             return mongo_query + ";"
         elif ast.type == "INSERT_QUERY":
+            content_node = next(child for child in ast.children if child and child.type == "CONTENT")
+            # finish
+            # Process WHERE conditions
+            query = {}
+            if content_node:
+                contents = self.traverse_contents(content_node, for_sql=False)
+                query = contents
+            insert_query = f"db.{table_name}."
+            insert_query += "insertMany" if len(query)>1 else "insertOne"
+            insert_query += f"({query});"
+            return insert_query
+            '''
             documents = kwargs.get("documents", [])
             if not documents:
                 raise ValueError("INSERT requires 'documents' to be provided")
@@ -694,7 +922,9 @@ class CodeGenerator:
                 return f"db.{table_name}.insertMany({json.dump(documents)});"
             else: 
                 return f"db.{table_name}.insertOne({json.dump(documents)});"
+            '''
         elif ast.type == "UPDATE_QUERY":
+            # finish
             # Extract SET clause and conditions from the AST
             set_clause_node = next(child for child in ast.children if child and child.type == "SET_CLAUSE")
             condition_node = next((child for child in ast.children if child and child.type == "CONDITION"), None)
@@ -716,39 +946,48 @@ class CodeGenerator:
 
             # Generate the MongoDB update query
             #update_many = kwargs.get("update_many", False)  # Optional: control updateOne or updateMany
-            update_many=True
+            update_many = True
             update_query = f"db.{table_name}."
             update_query += "updateMany" if update_many else "updateOne"
             update_query += f"({json.dumps(query)}, {json.dumps({'$set': updates})});"
+            #update_query += f"({query}, {'$set': {updates}});"
             return update_query
         
         elif ast.type == "DELETE_QUERY":
-            delete_many = kwargs.get("delete_many", False)
-            query = {"$and": conditions} if len(conditions) > 1 else conditions[0]
+            #finish
+            condition_node = next((child for child in ast.children if child and child.type == "CONDITION"), None)
+            print("The condition node for delete is: ", condition_node)
+            query = {}
+            if condition_node:
+                conditions = self.traverse_conditions(condition_node, for_sql=False)
+                query = conditions[0]
+            print("The result for delete is: ", query)
+            #delete_many = kwargs.get("delete_many", False)
+            #query = {"$and": conditions} if len(conditions) > 1 else conditions[0]
             delete_query = f"db.{table_name}."
-            delete_query += "deleteMany" if delete_many else "deleteOne"
-            delete_query += f"{{query}};"
+            #delete_query += "deleteMany" if delete_many else "deleteOne"
+            delete_query += "deleteMany"
+            delete_query += f"({json.dumps(query)};"
             return delete_query
         
-        elif ast.type == "AGGREGATE_QUERY":
-            pipeline = []
+        # elif ast.type == "AGGREGATE_QUERY":
+        #     pipeline = []
 
-            if ast:
-                conditions = self.traverse_conditions(ast, for_sql=False)
-                match_stage = {'$match': {'$and': conditions} if len(conditions) > 1 else conditions[0]}
-                pipeline.append(match_stage)
+        #     if ast:
+        #         conditions = self.traverse_conditions(ast, for_sql=False)
+        #         match_stage = {'$match': {'$and': conditions} if len(conditions) > 1 else conditions[0]}
+        #         pipeline.append(match_stage)
             
-
-            for stage in ["unwind", "group", "sort", "project", "lookup", "limit", "skip"]:
-                if stage in kwargs:
-                    pipeline.append(f"${stage}: kwargs['${stage}]")
+        #     for stage in ["unwind", "group", "sort", "project", "lookup", "limit", "skip"]:
+        #         if stage in kwargs:
+        #             pipeline.append(f"${stage}: kwargs['${stage}]")
            
-            return f"db.{table_name}.aggregate({json.dumps(pipeline, indent=2)});"
+        #     return f"db.{table_name}.aggregate({json.dumps(pipeline, indent=2)});"
         else:
             raise ValueError(f"Unsupported operation: {operation}")
+        
+
          
-
-
     def traverse_conditions(self, node, for_sql=True):
         # implement variouus conditions to resolve each type
         conditions = []
@@ -788,7 +1027,7 @@ class CodeGenerator:
                     #print(f"my next: {my_next}")
                     next_conditions = self.traverse_conditions(my_next, for_sql = False)
                     #next_conditions = self.traverse_conditions(node.children[i+1], for_sql = False)
-                    mongo_operator = {"and": "$and", "or": "$or", "nor": '$nor'}.get(operator)
+                    mongo_operator = {"and": "$and", "or": "$or", "nor": "$nor"}.get(operator)
                     if mongo_operator and last_condition:
                         #print("1")
                         #print(f"last condition{last_condition}")
@@ -817,6 +1056,41 @@ class CodeGenerator:
             i=i+1
         return conditions
 
+    def traverse_contents(self, node, for_sql=False):
+        sql_fields = []
+        sql_values = []
+        nosql_docs = []
+
+        if node.type == "CONTENT":
+            for child in node.children:
+                if child.type == "SINGLE_CONTENT":
+                    field_list = []
+                    value_list = []
+                    nosql_doc = {}
+                    for atom in child.children:
+                        if atom.type == "ATOM_CONTENT":
+                            field = None
+                            value = None
+                            for attr in atom.children:
+                                if attr.type == "FIELD":
+                                    field = attr.value
+                                elif attr.type == "VALUE":
+                                    value = attr.value
+                            if field and value:
+                                field_list.append(field)
+                                value_list.append(f"'{value}'")  # Ensure SQL values are quoted
+                                nosql_doc[field] = value
+                    sql_fields = field_list  # Overwritten for every content; fields are consistent
+                    sql_values.append(f"({', '.join(value_list)})")
+                    nosql_docs.append(nosql_doc)
+
+        # Generate SQL statement
+        sql_insert = f"({', '.join(sql_fields)}) VALUES {', '.join(sql_values)};"
+        if for_sql:
+            return sql_fields
+        else:
+            return nosql_docs
+
     def map_sql_operator(self, relation):
         return {
             "equal to": "=",
@@ -841,19 +1115,36 @@ class CodeGenerator:
 # The main function
 def main():
     # Step 1: Input data for testing
-    
-    nosql_file_path = "../Database/NoSQL/sampleCultureProducts.json"  # Replace with your test JSON file path
+    sql_file_paths = [
+        "../Database/SQL/data/Manufacturer_data.csv",
+        "../Database/SQL/data/Product_data.csv",
+        "../Database/SQL/data/Reviewer_data.csv",
+        "../Database/SQL/data/Warehouse_data.csv",
+        "../Database/SQL/data/Vendor_data.csv"
+    ]
+    nosql_file_paths = [
+        "../Database/NoSQL/city-mongodb.json",  # 示例文件 1
+        "../Database/NoSQL/country-mongodb.json",                 # 示例文件 2
+        "../Database/NoSQL/countrylanguage-mongodb.json",             # 示例文件 3
+        "../Database/NoSQL/sampleCultureProducts.json"
+    ]
+    my_file_paths = nosql_file_paths
+    #nosql_file_path = "../Database/NoSQL/sampleCultureProducts.json"  # Replace with your test JSON file path
     # 提取文件名（包括扩展名）
-    file_name_with_ext = os.path.basename(nosql_file_path)  # 输出: sampleCultureProducts.json
+    ## process_table_names(nosql_file_paths)
+    process_table_names(my_file_paths)
+    '''
+    file_name_with_ext = os.path.basename(nosql_file_paths)  # 输出: sampleCultureProducts.json
     global my_table_name
     # 去掉扩展名
     my_table_name = os.path.splitext(file_name_with_ext)[0]  # 输出: sampleCultureProducts
-
     print("table name is: "+my_table_name)
+    '''
 
     # Step 2: Load the symbol table and select SQL or NoSQL
     try:
-        target = generate_separate_symbol_tables(nosql_file_path)  # or nosql_file_path
+        ##target = generate_separate_symbol_tables(nosql_file_paths)
+        target = generate_separate_symbol_tables(my_file_paths)                
         print(f"Target detected: {target}")
         print(f"Symbol Table: {symbol_table}")
     except ValueError as e:
@@ -862,22 +1153,40 @@ def main():
     
     global TOKEN_RULES
     TOKEN_RULES = [
-    ("KEYWORD", r"\b(search for|find|select|insert|add|append|create|put|write|store|include|populate|update|modify|edit|change|alter|refresh|adjust|correct|revise|replace|delete|remove|erase|clear|drop|destroy|truncate|discard|sum|count|avg|min|max)\b"),
+    ("KEYWORD", r"\b(search for|find|select|insert|add|append|create|put|write|store|include|populate|update|modify|edit|change|alter|refresh|adjust|correct|revise|replace|delete|remove|erase|clear|drop|destroy|truncate|discard|sum|count|avg|min|max|aggregate)\b"),
     ("RELATION", r"\b(equal to|greater than|less than|not equal to|greater than or equal to|less than or equal to|set|>=|<=|>|<|!=)\b"),  # 关系运算符[relational operators]
     ("FIELD", generate_field_patterns(symbol_table)),  # 字段名[fields]  # Pending: change it into the specific fields
     #("FIELD", r"\b(_id|shopifyId|title|descriptionHTML|handle|vendor|productType|tags|options|variants|images|createdAt|updatedAt|publishedAt)\b"),
     ("LOGICAL_OPERATOR", r"\b(and|or|nor)\b"),  # 逻辑操作符[logical operators]
     #("VALUE", r"(\d+|'.*?')"),  # 数值或字符串值[string or number]
+    #("AS", r"\b(as)\b"),
     ("VALUE", r"(\d+|'.*?'|\".*?\")"),
-    ("TABLE_NAME", my_table_name),
+    ("AGGREGATION_OPERATOR", r"\b(join|group|sort|unwind|project|limit|skip|lookup)\b"),
+    ("GROUP_OPERATOR", r"\b(calculate|collect|list)\b"),
+    ("SORT_OPERATOR", r"\b(decreasingly|increasingly)\b"),
+    ("TABLE_NAME", generate_field_patterns2(my_table_names)),
     ("WHITESPACE", r"\s+"),  # 空格（可以跳过） [whitespace]
     ("INVALID", r".")  # 无效字符[invalid characters]
 ]
-
+    print("token roles")
+    print(TOKEN_RULES)
+    print("symbol_table")
+    print(symbol_table)
     # Step 3: Lexical analysis
-    #input_query = "aaa want to search for product whose shopifyId is equal to \"aaa\" and vendor is equal to \"High-End Boutique Shops\""
-    #input_query = "I want to update the sampleCultureProducts table to set title equal to \"Handcrafted Indian Pashmina Shawl\" and handle equal to \"HPS\" where shopifyId equal to  \"HandCrafted-Pashmina-Shawl-One\"."
-    input_query = "I want to update the sampleCultureProducts table to set title equal to \"Handcrafted Indian Pashmina Shawl\" where shopifyId is equal to  \"HandCrafted-Pashmina-Shawl-One\" and handle is equal to \"HPS\"."
+    #select:(ok)
+    #input_query = "aaa want to search for product from sampleCultureProducts table whose shopifyId is equal to \"aaa\" and vendor is equal to \"High-End Boutique Shops\""
+    #update:(ok)
+    #input_query = "I want to update the sampleCultureProducts table to set title equal to \"Handcrafted Indian Pashmina Shawl\" where shopifyId is equal to  \"HandCrafted-Pashmina-Shawl-One\" and handle is equal to \"HPS\"."
+    #delete:(ok)
+    #input_query = "I want to delete products from sampleCultureProducts table whose shopifyId is equal to \"aaa\" and vendor is equal to \"High-End Boutique Shops\""
+    #insert one:(ok)
+    #input_query = "insert one user records into sampleCultureProducts table: shopifyId \"USC-1\" title \"University of Southern California\", with the handle \"USC\""
+    #insert many:(ok)
+    #input_query = "insert two user records into sampleCultureProducts table: shopifyId \"USC-1\" title \"University of Southern California\", with the handle \"USC\" and shopifyId \"DSCI551-1\" title \" Data Management \", with the handle \"DSCI551\""
+    #aggregate:
+    #example: input_query = "I want to perform an aggregation query in MongoDB on the localCollection, including the following stages: join the foreignCollection collection on localField and foreignField, aliasing the results as asField; group the documents by the groupField field; sort the results by sortField in ascending/descending order; unwind the unwindField array; limit the results to limitValue documents; skip the first skipValue documents; and project only the field1, field2, and field3 fields."
+    #input_query = "I want to aggregate a query in MongoDB on the city-mongodb including the following stages: join the country-mongodb collection on CountryCode and code, aliasing the results as \"Country_and_City\". Later, join the countrylanguage-mongodb collection on CountryCode and CountryCode, aliasing the results as \"Country_and_Language\"."
+    input_query = "I want to aggregate a query in MongoDB on the city-mongodb including the following stages: join the country-mongodb collection on CountryCode and code, aliasing the results as \"Country_and_City\". Later, join the countrylanguage-mongodb collection on CountryCode and CountryCode, aliasing the results as \"Country_and_Language\", group the documents by CountryCode to calculate \"totalPopulation\" as the values of total Population, collect \"cities\" as the values of Name, list \"languages\" as the values of unique Language, then sort by totalPopulation decreasingly, unwind cities, skip the first 10 results, limit to 5 results, last finally project only the CountryCode, totalPopulation, cities, languages."
     tokens = lexical_analysis(input_query)
     print(input_query)
 
@@ -905,10 +1214,10 @@ def main():
     code_generator = CodeGenerator(target)
     try:
         if target == "SQL":
-            sql_query = code_generator.generate(ast, table_name=my_table_name)
+            sql_query = code_generator.generate(ast)
             print(f"Generated SQL Query: {sql_query}")
         elif target == "NoSQL":
-            mongo_query = code_generator.generate(ast, table_name=my_table_name)
+            mongo_query = code_generator.generate(ast)
             print(f"Generated NoSQL Query: {mongo_query}")
     except ValueError as e:
         print(f"Query generation error: {e}")
@@ -916,4 +1225,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
