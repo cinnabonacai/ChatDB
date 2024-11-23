@@ -2,17 +2,23 @@
 <html>
 <head>
     <title>ChatDB</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <h1>ChatDB</h1>
         <div id="chatbox">
-            </div>
+        </div>
         <div id="input-area">
+            <input type="file" id="file-upload" accept=".csv, .json, .txt">
+            <label for="file-upload" class="file-upload-label">
+                <i class="fas fa-upload"></i>
+            </label>
             <input type="text" id="user-input" placeholder="Message ChatDB...">
             <button id="submit-btn">Submit</button>
         </div>
+        <div id="uploaded-file-info"></div>
     </div>
     <script src="script.js"></script>
 </body>

@@ -1,10 +1,14 @@
 const chatbox = document.getElementById('chatbox');
 const userInput = document.getElementById('user-input');
 const submitBtn = document.getElementById('submit-btn');
+const fileUpload = document.getElementById('file-upload');
+const uploadedFileInfo = document.getElementById('uploaded-file-info');
+
+let uploadedFile = null;
 
 // Function to send the message
 function sendMessage() {
-    const userQuestion = userInput.value.trim(); // Trim whitespace
+    const userQuestion = userInput.value.trim();
 
     // Check if the input is empty
     if (userQuestion === '') {
@@ -16,13 +20,17 @@ function sendMessage() {
     // Display user's question
     displayMessage('user', userQuestion);
 
-    // TODO: Send userQuestion to your backend (ChatDB)
-    // TODO: Receive response from backend 
-    // Example using fetch API:
+    // Prepare data to send to backend
+    const formData = new FormData();
+    formData.append('question', userQuestion);
+    if (uploadedFile) {
+        formData.append('file', uploadedFile);
+    }
+
+    // Send userQuestion and file (if any) to your backend
     fetch('/your-backend-endpoint', {  // Replace with your actual endpoint
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: userQuestion })
+        body: formData
     })
     .then(response => response.json())
     .then(data => {
@@ -34,6 +42,17 @@ function sendMessage() {
         displayMessage('bot', "Sorry, there was an error processing your request.");
     });
 }
+
+function handleFileUpload(event) {
+    uploadedFile = event.target.files[0];
+    if (uploadedFile) {
+        uploadedFileInfo.textContent = `Uploaded file: ${uploadedFile.name}`;
+        displayMessage('user', `File uploaded: ${uploadedFile.name}`);
+    }
+}
+
+// Event listener for file upload
+fileUpload.addEventListener('change', handleFileUpload);
 
 // Event listener for submit button
 submitBtn.addEventListener('click', sendMessage);
@@ -47,7 +66,7 @@ userInput.addEventListener('keyup', (event) => {
 
 function displayMessage(sender, message) {
     const messageElement = document.createElement('div');
-    messageElement.classList.add(sender);
+    messageElement.classList.add('message', `${sender}-message`);
     messageElement.textContent = message;
     chatbox.appendChild(messageElement);
 
