@@ -356,6 +356,9 @@ class Parser:
             return self.parse_delete_query()
         elif verb in ['group by', 'aggregate', 'sum', 'count', 'avg', 'min', 'max', 'distinct', 'join', 'group', 'sort', 'unwind', 'project', 'limit', 'skip', 'lookup', 'collect', 'list', 'calculate']:
             return self.parse_aggregate_query()
+        elif verb in ['generate']:
+            print("generate in SQL")
+            return self.parse_generate_query()
         else:
             raise SyntaxError(f"Unknown operation: {verb}")
     '''
@@ -547,6 +550,61 @@ class Parser:
         #my_children_node = ASTNode("AGGREGATION_CHILDREN", pipeline)
         return ASTNode("AGGREGATION_PIPELINE", value=local_collection, children=pipeline)
 
+    def parse_generate_query(self):
+        print("Enter the function: ")
+        pipeline = []
+        verb_node = self.consume("KEYWORD")
+        local_collection = self.consume("TABLE_NAME").value
+        select_items = []
+        pipeline.append(f"FROM {local_collection}")
+        while self.current_token() and self.current_token().type == "AGGREGATION_OPERATOR":
+            print("Enter the aggreation in SQL")
+            operator = self.consume("AGGREGATION_OPERATOR")
+            stage = operator.value.lower()
+            print("my current aggregation operator: ", operator)
+            print("my stage is: ", stage)
+            # SQL operation
+            if stage == "join":
+                foreign_collection =  self.consume("TABLE_NAME").value
+                local_field = self.consume("FIELD").value
+                logical_operator = self.consume("LOGICAL_OPERATOR").value
+                foreign_field = self.consume("FIELD").value
+                pipeline.append(f"JOIN {foreign_collection} ON {local_collection}.{local_field} = {foreign_collection}.{foreign_field}")
+            elif stage == "sort":
+                sort_field = self.consume("FIELD").value
+                sort_order = self.consume("SORT_OPERATOR").value
+                sort_query=f"ORDER BY {sort_field} " + "ASC" if sort_order == "increasingly" else f"ORDER BY {sort_field} " + "DESC"
+                pipeline.append(sort_query)
+            elif stage == "limit":
+                limit_value = int(self.consume("VALUE").value)
+                pipeline.append(f"LIMIT {limit_value}")
+            elif stage == "project":
+                while self.current_token() and self.current_token().type == "FIELD":
+                    current_field = self.consume("FIELD").value
+                    current_table = self.consume("TABLE_NAME").value
+                    select_items.append(current_table+"."+current_field)
+                    #project_list.append(current_field)
+                    #projection = {field: 1 for field in fields}
+            #NoSQL operation
+            elif stage == "group":
+                group_field = self.consume("FIELD").value  # Consume the FIELD token for the group stage
+                group_table = self.consume("TABLE_NAME").value
+                pipeline.append(f"GROUP BY {group_table}.{group_field}")
+                #group_operations = {}  # To store parsed group operations
+                #group_operations['_id'] = f"${group_field}"
+            # Iterate until a non-group-related token or end of the stream
+                while self.current_token().type == "GROUP_OPERATOR":
+                    current_operator = self.consume("GROUP_OPERATOR").value  # Consume the GROUP_OPERATOR token
+                    current_value = self.consume("VALUE").value.strip("\"")  # Consume the VALUE token
+                    current_field = self.consume("FIELD").value
+                    current_table = self.consume("TABLE_NAME").value
+                    if current_operator =='calculate':
+                        select_items.append(f"SUM({current_table}.{current_field}) AS {current_value}")
+                        #group_operations[current_value]={'$sum':f"${current_field}"}
+                #pipeline.append({"$group":group_operations})
+        pipeline.append(select_items)
+        #my_children_node = ASTNode("AGGREGATION_CHILDREN", pipeline)
+        return ASTNode("GENERATE_PIPELINE", value=local_collection, children=pipeline)
 
     # look for all words that are related to the keyword
     def verb(self):
@@ -631,7 +689,7 @@ class SemanticAnalyzer:
             raise ValueError("Target must be 'SQL' or 'NoSQL'")
         
         # If my result type is query, then I will analyze the query.
-        if ast.type == "QUERY" or ast.type == "SELECT_QUERY" or ast.type == "DELETE_QUERY" or ast.type == "INSERT_QUERY" or ast.type == "UPDATE_QUERY" or ast.type == "AGGREGATION_PIPELINE":
+        if ast.type == "QUERY" or ast.type == "SELECT_QUERY" or ast.type == "DELETE_QUERY" or ast.type == "INSERT_QUERY" or ast.type == "UPDATE_QUERY" or ast.type == "AGGREGATION_PIPELINE" or ast.type == "GENERATE_PIPELINE":
             print("It is Query.")
             return self.analyze_query(ast)
         else:
@@ -640,7 +698,7 @@ class SemanticAnalyzer:
     # start from the root of the AST, both verb and conditions are examined.
     def analyze_query(self, node):
         print("The node at analyze_query is: ", node)
-        if node.type != "AGGREGATION_PIPELINE":
+        if node.type != "AGGREGATION_PIPELINE" and node.type != "GENERATE_PIPELINE":
             """Analyze the root query node based on SQL and NoSQL"""
             for child in node.children:
                 #print("child type:", type(child))
@@ -722,7 +780,7 @@ class SemanticAnalyzer:
                 return True
             if expected_type == "REAL" and self.is_float(value):
                 return True
-            if expected_type == "TEXT" and value.startswith("'") and value.endswith("'"):
+            if expected_type == "TEXT" and value.startswith("\"") and value.endswith("\""):
                 return True
             if expected_type == "DATE" and self.is_date(value):
                 return True
@@ -779,7 +837,7 @@ class CodeGenerator:
      # PENDING: The name of the table needs to be modified based on the table name.
     def generate(self, ast):
         #print("my generate: ", ast)
-        if ast.type == "QUERY" or ast.type == "SELECT_QUERY" or ast.type == "DELETE_QUERY" or ast.type == "INSERT_QUERY" or ast.type == "UPDATE_QUERY" or ast.type == "AGGREGATION_PIPELINE":
+        if ast.type == "QUERY" or ast.type == "SELECT_QUERY" or ast.type == "DELETE_QUERY" or ast.type == "INSERT_QUERY" or ast.type == "UPDATE_QUERY" or ast.type == "AGGREGATION_PIPELINE" or ast.type == "GENERATE_PIPELINE":
             if self.target == "SQL":
                 return self.generate_sql(ast)
             elif self.target == "NoSQL":
@@ -787,16 +845,41 @@ class CodeGenerator:
         else:
             raise ValueError(f"Unsupported AST node type: {ast.type}")
    
-    def generate_sql(self, ast, table_name="hhh", operation="SELECT", **kwargs):
-        condition_node = next(child for child in ast.children if child.type == "CONDITION")
+    def generate_sql(self, ast):
+        if ast.type == "GENERATE_PIPELINE":
+            
+            # Select x1, x2, x3 FROM 
+            # x1, x2, x3, ... ast.children[pipeline - 1]
+            # string 
+            my_query=f"SELECT "
+            
+            my_field=""
+            current_fields_candidate = ast.children[len(ast.children) - 1]
+            for index in range(0, len(current_fields_candidate)):
+                if index != 0 and index != len(ast.children) - 1:
+                   my_field += ", "
+                my_field += current_fields_candidate[index]
+            
+            my_query += f'{my_field}'       
+            
+            for index in range(0, len(ast.children) - 1):
+               my_query += f' {ast.children[index]}'
+
+            return my_query + ";" 
+        
+        table_name=ast.children[1].value
+        #condition_node = next(child for child in ast.children if child.type == "CONDITION")
         if ast.type == "SELECT_QUERY":
-            columns = kwargs.get("columns", "*")
-            joins = kwargs.get("joins", [])
-            group_by = kwargs.get("group_by")
-            having = kwargs.get("having")
-            order_by = kwargs.get("order_by")
-            sort_order = kwargs.get("sort_order", "ASC")
-            query = f"SELECT {columns} FROM {table_name}"
+            #columns = kwargs.get("columns", "*")
+            #joins = kwargs.get("joins", [])
+            #group_by = kwargs.get("group_by")
+            #having = kwargs.get("having")
+            #order_by = kwargs.get("order_by")
+            #sort_order = kwargs.get("sort_order", "ASC")
+            
+            condition_node = next(child for child in ast.children if child.type == "CONDITION")
+            query = f"SELECT * FROM {table_name}"
+            '''
             for join in joins:
                 join_table = join.get("table")
                 join_type = join.get("type", "INNER").upper()
@@ -804,11 +887,7 @@ class CodeGenerator:
                 if not join_table or not join_condition:
                     raise ValueError("JOIN requires 'tables' and 'on'")
                 query += f"{join_type} JOIN {join_table} ON {join_condition}"
-            
-            if condition_node:
-               conditions = self.traverse_conditions(condition_node, for_sql = True)
-               query += f" WHERE {' '.join(conditions)}"
-            
+
             if group_by:
                 query += f" GROUP BY {group_by}"
 
@@ -817,33 +896,58 @@ class CodeGenerator:
             
             if order_by:
                 query += f" ORDER BY {order_by} {sort_order}"
-            
+            '''
+            if condition_node:
+               conditions = self.traverse_conditions(condition_node, for_sql = True)
+               query += f" WHERE {' '.join(conditions)}"
             return query + ";"
         elif ast.type == "INSERT_QUERY":
-            fields = kwargs.get("fields", []) # extract the specific field at my table. For instance "id" "name" "price"
-            values = kwargs.get("values", []) # extract the values associated with this specific field "98076" "Sam" 27.4 
-            if not fields or not values:
-                raise ValueError("INSERT requires 'fields' and 'values'")
-            
-            if len(fields) != len(values): 
-                raise ValueError("The length of fields and values must be the same!")
-            
-            fields_str = ", ".join(fields) # "id", "name", "price"
-            values_str = ", ".join(f"'{v}'" for v in values) # 98076, "Sam", 27.4
-            return f"INSERT INTO {table_name} ({fields_str}) VALUES ({values_str});"
+            content_node = next(child for child in ast.children if child and child.type == "CONTENT")
+            # finish
+            # Process WHERE conditions
+            query_collected = {}
+            if content_node:
+                contents = self.traverse_contents(content_node, for_sql=True)
+                query_collected = contents
+            return f"INSERT INTO {table_name} {query_collected};"
         elif ast.type == "UPDATE_QUERY":
-            updates = kwargs.get("updates", {})
-            if not updates:
-                raise ValueError("UPDATE requires 'updates'")
-            set_clause = ', '.join(f'''{k}='{v.replace("'", "''")}' ''' for k, v in updates.items() if v is not None)
-            if not set_clause:
-                raise ValueError("No valid updated provided")
-            
-            query = f"UPDATE {table_name} SET {set_clause}"
+            set_clause_node = next(child for child in ast.children if child and child.type == "SET_CLAUSE")
+            condition_node = next((child for child in ast.children if child and child.type == "CONDITION"), None)
 
+            # Process SET clause
+            updates = {}
+            for update_pair in set_clause_node.children:
+                field_node, value_node = update_pair.children
+                updates[field_node.value] = value_node.value.strip("'\"")  # Remove quotes
+
+            # Process WHERE conditions
+            
+            #updates = kwargs.get("updates", {})
+            #if not updates:
+                #raise ValueError("UPDATE requires 'updates'")
+            #set_clause = ', '.join(f'''{k}='{v.replace("'", "''")}' ''' for k, v in updates.items() if v is not None)
+            #if not set_clause:
+                #raise ValueError("No valid updated provided")
+            
+            query = f"UPDATE {table_name} SET "
+            
+            updates_length = len(updates)
+            index=0
+
+            for key in updates.keys():
+                if index != 0 and index != updates_length - 1:
+                    query += ','
+
+                query += f'{key} = {updates[key]}'
+                index += 1
+                
+
+           
             if condition_node:
                 conditions = self.traverse_conditions(condition_node, for_sql = True)
-                query += f" WHERE {' '.joins(conditions)}"
+                #query += f" WHERE {' '.joins(conditions[0])}"
+                query += f" WHERE {' '.join(conditions)}"
+
             
             return query + ";"
         elif ast.type == "DELETE_QUERY":
@@ -1090,11 +1194,11 @@ class CodeGenerator:
                     sql_fields = field_list  # Overwritten for every content; fields are consistent
                     sql_values.append(f"({', '.join(value_list)})")
                     nosql_docs.append(nosql_doc)
-
         # Generate SQL statement
-        sql_insert = f"({', '.join(sql_fields)}) VALUES {', '.join(sql_values)};"
+        sql_insert_values = f"({', '.join(sql_fields)}) VALUES {', '.join(sql_values)}"
+        
         if for_sql:
-            return sql_fields
+            return sql_insert_values
         else:
             return nosql_docs
 
@@ -1127,7 +1231,8 @@ def main():
         "../Database/SQL/data/Product_data.csv",
         "../Database/SQL/data/Reviewer_data.csv",
         "../Database/SQL/data/Warehouse_data.csv",
-        "../Database/SQL/data/Vendor_data.csv"
+        "../Database/SQL/data/Vendor_data.csv",
+        "../Database/SQL/data/Relationship_product_manufacturer_data.csv"
     ]
     nosql_file_paths = [
         "../Database/NoSQL/city-mongodb.json",  # 示例文件 1
@@ -1135,7 +1240,7 @@ def main():
         "../Database/NoSQL/countrylanguage-mongodb.json",             # 示例文件 3
         "../Database/NoSQL/sampleCultureProducts.json"
     ]
-    my_file_paths = nosql_file_paths
+    my_file_paths = sql_file_paths
     #nosql_file_path = "../Database/NoSQL/sampleCultureProducts.json"  # Replace with your test JSON file path
     # 提取文件名（包括扩展名）
     ## process_table_names(nosql_file_paths)
@@ -1160,7 +1265,7 @@ def main():
     
     global TOKEN_RULES
     TOKEN_RULES = [
-    ("KEYWORD", r"\b(search for|find|select|insert|add|append|create|put|write|store|include|populate|update|modify|edit|change|alter|refresh|adjust|correct|revise|replace|delete|remove|erase|clear|drop|destroy|truncate|discard|sum|count|avg|min|max|aggregate)\b"),
+    ("KEYWORD", r"\b(search for|find|select|insert|add|append|create|put|write|store|include|populate|update|modify|edit|change|alter|refresh|adjust|correct|revise|replace|delete|remove|erase|clear|drop|destroy|truncate|discard|sum|count|avg|min|max|aggregate|generate)\b"),
     ("RELATION", r"\b(equal to|greater than|less than|not equal to|greater than or equal to|less than or equal to|set|>=|<=|>|<|!=)\b"),  # 关系运算符[relational operators]
     ("FIELD", generate_field_patterns(symbol_table)),  # 字段名[fields]  # Pending: change it into the specific fields
     #("FIELD", r"\b(_id|shopifyId|title|descriptionHTML|handle|vendor|productType|tags|options|variants|images|createdAt|updatedAt|publishedAt)\b"),
@@ -1180,6 +1285,7 @@ def main():
     print("symbol_table")
     print(symbol_table)
     # Step 3: Lexical analysis
+    #nosql
     #select:(ok)
     #input_query = "aaa want to search for product from sampleCultureProducts table whose shopifyId is equal to \"aaa\" and vendor is equal to \"High-End Boutique Shops\""
     #update:(ok)
@@ -1191,9 +1297,22 @@ def main():
     #insert many:(ok)
     #input_query = "insert two user records into sampleCultureProducts table: shopifyId \"USC-1\" title \"University of Southern California\", with the handle \"USC\" and shopifyId \"DSCI551-1\" title \" Data Management \", with the handle \"DSCI551\""
     #aggregate:
-    #example: input_query = "I want to perform an aggregation query in MongoDB on the localCollection, including the following stages: join the foreignCollection collection on localField and foreignField, aliasing the results as asField; group the documents by the groupField field; sort the results by sortField in ascending/descending order; unwind the unwindField array; limit the results to limitValue documents; skip the first skipValue documents; and project only the field1, field2, and field3 fields."
-    #input_query = "I want to aggregate a query in MongoDB on the city-mongodb including the following stages: join the country-mongodb collection on CountryCode and code, aliasing the results as \"Country_and_City\". Later, join the countrylanguage-mongodb collection on CountryCode and CountryCode, aliasing the results as \"Country_and_Language\"."
-    input_query = "I want to aggregate a query in MongoDB on the city-mongodb including the following stages: join the country-mongodb collection on CountryCode and code, aliasing the results as \"Country_and_City\". Later, join the countrylanguage-mongodb collection on CountryCode and CountryCode, aliasing the results as \"Country_and_Language\", group the documents by CountryCode to calculate \"totalPopulation\" as the values of total Population, collect \"cities\" as the values of Name, list \"languages\" as the values of unique Language, then sort by totalPopulation decreasingly, unwind cities, skip the first 10 results, limit to 5 results, last finally project only the CountryCode, totalPopulation, cities, languages."
+    #input_query = "I want to aggregate a query in MongoDB on the city-mongodb including the following stages: join the country-mongodb collection on CountryCode and code, aliasing the results as \"Country_and_City\". Later, join the countrylanguage-mongodb collection on CountryCode and CountryCode, aliasing the results as \"Country_and_Language\", group the documents by CountryCode to calculate \"totalPopulation\" as the values of total Population, collect \"cities\" as the values of Name, list \"languages\" as the values of unique Language, then sort by totalPopulation decreasingly, unwind cities, skip the first 10 results, limit to 5 results, last finally project only the CountryCode, totalPopulation, cities, languages."
+    
+    #sql
+    #select
+    #input_query = "aaa want to search for product from Product_data table whose length is greater than 70 and material is equal to \"Wood\"."
+    #insert one:(ok)
+    #input_query = "insert one reviewer records into Reviewer_data table: id 101 country \"United States\" age 30 gender \"Female\" phone_number \"123-456-789\" email \"aaa@gmail.com\" introduction \"I'm Echo.\""
+    #insert many:(ok)
+    #input_query = "insert two user records into Reviewer_data table: id 101 country \"United States\" age 30 gender \"Female\" phone_number \"123-456-789\" email \"aaa@gmail.com\" introduction \"I'm Echo.\" and id 102 country \"China\" age 16 gender \"Male\" phone_number \"213-456-999\" email \"bbb@outlook.com\" introduction \"I'm Tom.\""
+    #update:(ok)
+    #input_query = "I want to update the Vendor_data table to set address equal to \"NULL\" where is_operated is equal to 0 and year is less than 1970."
+    #delete
+    #generate:
+    #input_query = "I want to generate a query in Mysql on the Product_data including the following steps: join the Relationship_product_manufacturer_data table on id and product_id. Later, join the Manufacturer_data table on id and manufacturer_id."
+    input_query = "I want to generate a query in Mysql on the Product_data including the following steps: join the Relationship_product_manufacturer_data table on id and product_id. Later, join the Manufacturer_data table on id and manufacturer_id, group the table by origin in Product_data table to calculate \"totalPrice\" as the values of total price in Product_data table, then sort by totalPrice decreasingly, limit to 5 results, last finally project only the id in Product_data, name in Product_data, image in Product_data, totalPrice in Product_data."
+
     tokens = lexical_analysis(input_query)
     print(input_query)
 
