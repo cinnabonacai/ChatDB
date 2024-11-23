@@ -517,27 +517,34 @@ class Parser:
                 skip_value = int(self.consume("VALUE").value)
                 pipeline.append({"$skip": skip_value})
             elif stage == "project":
-                project_list = []
+                project_list = {}
                 while self.current_token() and self.current_token().type == "FIELD":
                     current_field = self.consume("FIELD").value
-                    project_list.append(current_field)
+                    project_list[current_field]=1
+                    #project_list.append(current_field)
                     #projection = {field: 1 for field in fields}
                 pipeline.append({"$project": project_list})
             #NoSQL operation
             elif stage == "group":
                 group_field = self.consume("FIELD").value  # Consume the FIELD token for the group stage
-                group_operations = []  # To store parsed group operations
-
+                group_operations = {}  # To store parsed group operations
+                group_operations['_id'] = f"${group_field}"
             # Iterate until a non-group-related token or end of the stream
                 while self.current_token().type == "GROUP_OPERATOR":
                     current_operator = self.consume("GROUP_OPERATOR").value  # Consume the GROUP_OPERATOR token
                     current_value = self.consume("VALUE").value  # Consume the VALUE token
                     current_field = self.consume("FIELD").value
-                    group_operations.append({current_value:{current_operator: current_field}})
-                
-                pipeline.append(["group",group_field, group_operations])
+                    if current_operator =='calculate':
+                        group_operations[current_value]={'$sum':f"${current_field}"}
+                    elif current_operator =='collect':
+                        group_operations[current_value]={'$push':f"${current_field}"}
+                    elif current_operator =='list':
+                        group_operations[current_value]={'$addToSet':f"${current_field}"}
+                    #group_operations.append({current_value:{current_operator: current_field}})
 
+                pipeline.append({"$group":group_operations})
 
+        #my_children_node = ASTNode("AGGREGATION_CHILDREN", pipeline)
         return ASTNode("AGGREGATION_PIPELINE", value=local_collection, children=pipeline)
 
 
@@ -633,20 +640,20 @@ class SemanticAnalyzer:
     # start from the root of the AST, both verb and conditions are examined.
     def analyze_query(self, node):
         print("The node at analyze_query is: ", node)
-        
-        """Analyze the root query node based on SQL and NoSQL"""
-        for child in node.children:
-            print("child type:", type(child))
-            # only for aggregation in MongoDB
-            if isinstance(child, dict):
-                continue
-            # PENDING: If the type of the child is verb, we need to check whether it is valid.
-            if child and child.type=="TABLE_NAME":
-                analyze_table= child.value
-            # If these are conditions, it is required to analyze their conditions
-            if child and child.type == "CONDITION":
-                #print("Check condition")
-                self.analyze_condition(child, analyze_table)
+        if node.type != "AGGREGATION_PIPELINE":
+            """Analyze the root query node based on SQL and NoSQL"""
+            for child in node.children:
+                #print("child type:", type(child))
+                # only for aggregation in MongoDB
+                if isinstance(child, dict):
+                    continue
+                # PENDING: If the type of the child is verb, we need to check whether it is valid.
+                if child and child.type=="TABLE_NAME":
+                    analyze_table= child.value
+                # If these are conditions, it is required to analyze their conditions
+                if child and child.type == "CONDITION":
+                    #print("Check condition")
+                    self.analyze_condition(child, analyze_table)
 
     # For multiple conditions, each individual condition is examined properly.
     def analyze_condition(self, node, table_name):
