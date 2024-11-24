@@ -3,6 +3,8 @@ from typing import List, Tuple, Dict, Any
 import json, csv
 import os
 
+from flask import Flask, request, jsonify
+
 my_table_names = []
 
 def process_table_names(file_paths):
@@ -1221,133 +1223,249 @@ class CodeGenerator:
             "greater than or equal to": "$gte",
             "less than or equal to": "$lte"
         }.get(relation.lower(), relation)
+
+app = Flask(__name__)
+
+@app.route('/', methods=['GET'])
+def index():
+    return "hello"
+
+@app.route('/generate_query', methods=['GET'])
+def generate_result():
+    try:
     
+        # step 1: guarantee what specific file paths and the input query you need to generate
+        
+        # data = request.get_json()
+        # file_paths = data.get("file_paths", [])
+        # input_query = data.get("input_query", "")
 
-# The main function
-def main():
-    # Step 1: Input data for testing
-    sql_file_paths = [
-        "../Database/SQL/data/Manufacturer_data.csv",
-        "../Database/SQL/data/Product_data.csv",
-        "../Database/SQL/data/Reviewer_data.csv",
-        "../Database/SQL/data/Warehouse_data.csv",
-        "../Database/SQL/data/Vendor_data.csv",
-        "../Database/SQL/data/Relationship_product_manufacturer_data.csv"
-    ]
-    nosql_file_paths = [
-        "../Database/NoSQL/city-mongodb.json",  # 示例文件 1
-        "../Database/NoSQL/country-mongodb.json",                 # 示例文件 2
-        "../Database/NoSQL/countrylanguage-mongodb.json",             # 示例文件 3
-        "../Database/NoSQL/sampleCultureProducts.json"
-    ]
-    my_file_paths = nosql_file_paths
-    #nosql_file_path = "../Database/NoSQL/sampleCultureProducts.json"  # Replace with your test JSON file path
-    # 提取文件名（包括扩展名）
-    ## process_table_names(nosql_file_paths)
-    process_table_names(my_file_paths)
-    '''
-    file_name_with_ext = os.path.basename(nosql_file_paths)  # 输出: sampleCultureProducts.json
-    global my_table_name
-    # 去掉扩展名
-    my_table_name = os.path.splitext(file_name_with_ext)[0]  # 输出: sampleCultureProducts
-    print("table name is: "+my_table_name)
-    '''
+        # sample
 
-    # Step 2: Load the symbol table and select SQL or NoSQL
-    try:
-        ##target = generate_separate_symbol_tables(nosql_file_paths)
-        target = generate_separate_symbol_tables(my_file_paths)                
-        print(f"Target detected: {target}")
-        print(f"Symbol Table: {symbol_table}")
-    except ValueError as e:
-        print(f"Error loading symbol table: {e}")
-        return
+        sql_file_paths = [
+           "../Database/SQL/data/Manufacturer_data.csv",
+           "../Database/SQL/data/Product_data.csv",
+           "../Database/SQL/data/Reviewer_data.csv",
+           "../Database/SQL/data/Warehouse_data.csv",
+           "../Database/SQL/data/Vendor_data.csv",
+           "../Database/SQL/data/Relationship_product_manufacturer_data.csv"
+        ]
+         
+        nosql_file_paths = [
+            "../Database/NoSQL/city-mongodb.json",  # 示例文件 1
+            "../Database/NoSQL/country-mongodb.json",                 # 示例文件 2
+            "../Database/NoSQL/countrylanguage-mongodb.json",             # 示例文件 3
+            "../Database/NoSQL/sampleCultureProducts.json"
+        ]
+        
+        input_query = "I want to generate a query in Mysql on the Product_data including the following steps: join the Relationship_product_manufacturer_data table on id and product_id. Later, join the Manufacturer_data table on id and manufacturer_id, group the table by origin in Product_data table to calculate \"totalPrice\" as the values of total price in Product_data table, then sort by totalPrice decreasingly, limit to 5 results, last finally project only the id in Product_data, name in Product_data, image in Product_data, totalPrice in Product_data."
+        
+        if not input_query:
+            return jsonify({"error": "The input query is required."}, 400)
+        
+        # change the name to file_paths based on the variable file_paths
+        if not nosql_file_paths:
+            return jsonify({"error": "The file paths are required."}, 400)
+        
+        if not sql_file_paths:
+            return jsonify({"error": "The file paths are required."}, 400)
+        
+        # step 2: process each table name one by one, thus generating each symbol table according to the file paths
+        # change nosql_file_paths to file_paths
+        
+        #process_table_names(nosql_file_paths)
+        
+        process_table_names(sql_file_paths)
+        try:
+            # target = generate_separate_symbol_tables(nosql_file_paths)
+            target = generate_separate_symbol_tables(sql_file_paths)
+        except ValueError as e:
+            return jsonify({"error": f"Error loading symbol table: {e}"}, 400)
+
+        
+        # Step 3: Define token rules used to analyze each process
+        global TOKEN_RULES
+        TOKEN_RULES = [
+            ("KEYWORD", r"\b(search for|find|select|insert|add|append|create|put|write|store|include|populate|update|modify|edit|change|alter|refresh|adjust|correct|revise|replace|delete|remove|erase|clear|drop|destroy|truncate|discard|sum|count|avg|min|max|aggregate|generate)\b"),
+            ("RELATION", r"\b(equal to|greater than|less than|not equal to|greater than or equal to|less than or equal to|set|>=|<=|>|<|!=)\b"),  # 关系运算符[relational operators]
+            ("FIELD", generate_field_patterns(symbol_table)),  # 字段名[fields]  # Pending: change it into the specific fields
+            #("FIELD", r"\b(_id|shopifyId|title|descriptionHTML|handle|vendor|productType|tags|options|variants|images|createdAt|updatedAt|publishedAt)\b"),
+            ("LOGICAL_OPERATOR", r"\b(and|or|nor)\b"),  # 逻辑操作符[logical operators]
+            #("VALUE", r"(\d+|'.*?')"),  # 数值或字符串值[string or number]
+            #("AS", r"\b(as)\b"),
+            ("VALUE", r"(\d+|'.*?'|\".*?\")"),
+            ("AGGREGATION_OPERATOR", r"\b(join|group|sort|unwind|project|limit|skip|lookup)\b"),
+            ("GROUP_OPERATOR", r"\b(calculate|collect|list)\b"),
+            ("SORT_OPERATOR", r"\b(decreasingly|increasingly)\b"),
+            ("TABLE_NAME", generate_field_patterns2(my_table_names)),
+            ("WHITESPACE", r"\s+"),  # 空格（可以跳过） [whitespace]
+            ("INVALID", r".")  # 无效字符[invalid characters]
+        ]
+
+        # Step 4: Lexcial Analysis
+        tokens = lexical_analysis(input_query)
+        
+        # Step 5: Parsing
+        parser = Parser(tokens)
+        try:
+            ast = parser.parse()
+        except SyntaxError as e:
+            return jsonify({"error": f"Parsing error: {e}"}, 400)
+        
+        # Step 6: Semantic Analysis
+        analyzer = SemanticAnalyzer(symbol_table, target)
+        try:
+            analyzer.analyze(ast)
+        except SemanticError as e:
+            return jsonify({"error": f"Semantic error: {e}"}, 400)
+        
+        # Step 7: Code Generator
+        generator = CodeGenerator(target)
+        try:
+            if target == 'SQL':
+                result = generator.generate_sql(ast)
+            elif target == 'NoSQL':
+                result = generator.generate_mongo(ast)
+        except ValueError as e:
+            return jsonify({"error": f"Code generation error: {e}"}, 400)
+        
+        
+        # Step 8: Return the result
+        return jsonify({
+        "target": target,
+        "result": result,
+        "ast": repr(ast)
+        })
+    except Exception as e:
+         return jsonify({"error": f"The server error occurred: {e}"}, 500)
+
+
+
+# # The main function
+# def main():
+#     # Step 1: Input data for testing
+#     sql_file_paths = [
+#         "../Database/SQL/data/Manufacturer_data.csv",
+#         "../Database/SQL/data/Product_data.csv",
+#         "../Database/SQL/data/Reviewer_data.csv",
+#         "../Database/SQL/data/Warehouse_data.csv",
+#         "../Database/SQL/data/Vendor_data.csv",
+#         "../Database/SQL/data/Relationship_product_manufacturer_data.csv"
+#     ]
+#     nosql_file_paths = [
+#         "../Database/NoSQL/city-mongodb.json",  # 示例文件 1
+#         "../Database/NoSQL/country-mongodb.json",                 # 示例文件 2
+#         "../Database/NoSQL/countrylanguage-mongodb.json",             # 示例文件 3
+#         "../Database/NoSQL/sampleCultureProducts.json"
+#     ]
+#     my_file_paths = nosql_file_paths
+#     #nosql_file_path = "../Database/NoSQL/sampleCultureProducts.json"  # Replace with your test JSON file path
+#     # 提取文件名（包括扩展名）
+#     ## process_table_names(nosql_file_paths)
+#     process_table_names(my_file_paths)
+#     '''
+#     file_name_with_ext = os.path.basename(nosql_file_paths)  # 输出: sampleCultureProducts.json
+#     global my_table_name
+#     # 去掉扩展名
+#     my_table_name = os.path.splitext(file_name_with_ext)[0]  # 输出: sampleCultureProducts
+#     print("table name is: "+my_table_name)
+#     '''
+
+#     # Step 2: Load the symbol table and select SQL or NoSQL
+#     try:
+#         ##target = generate_separate_symbol_tables(nosql_file_paths)
+#         target = generate_separate_symbol_tables(my_file_paths)                
+#         print(f"Target detected: {target}")
+#         print(f"Symbol Table: {symbol_table}")
+#     except ValueError as e:
+#         print(f"Error loading symbol table: {e}")
+#         return
     
-    global TOKEN_RULES
-    TOKEN_RULES = [
-    ("KEYWORD", r"\b(search for|find|select|insert|add|append|create|put|write|store|include|populate|update|modify|edit|change|alter|refresh|adjust|correct|revise|replace|delete|remove|erase|clear|drop|destroy|truncate|discard|sum|count|avg|min|max|aggregate|generate)\b"),
-    ("RELATION", r"\b(equal to|greater than|less than|not equal to|greater than or equal to|less than or equal to|set|>=|<=|>|<|!=)\b"),  # 关系运算符[relational operators]
-    ("FIELD", generate_field_patterns(symbol_table)),  # 字段名[fields]  # Pending: change it into the specific fields
-    #("FIELD", r"\b(_id|shopifyId|title|descriptionHTML|handle|vendor|productType|tags|options|variants|images|createdAt|updatedAt|publishedAt)\b"),
-    ("LOGICAL_OPERATOR", r"\b(and|or|nor)\b"),  # 逻辑操作符[logical operators]
-    #("VALUE", r"(\d+|'.*?')"),  # 数值或字符串值[string or number]
-    #("AS", r"\b(as)\b"),
-    ("VALUE", r"(\d+|'.*?'|\".*?\")"),
-    ("AGGREGATION_OPERATOR", r"\b(join|group|sort|unwind|project|limit|skip|lookup)\b"),
-    ("GROUP_OPERATOR", r"\b(calculate|collect|list)\b"),
-    ("SORT_OPERATOR", r"\b(decreasingly|increasingly)\b"),
-    ("TABLE_NAME", generate_field_patterns2(my_table_names)),
-    ("WHITESPACE", r"\s+"),  # 空格（可以跳过） [whitespace]
-    ("INVALID", r".")  # 无效字符[invalid characters]
-]
-    print("token roles")
-    print(TOKEN_RULES)
-    print("symbol_table")
-    print(symbol_table)
-    # Step 3: Lexical analysis
-    #nosql
-    #select:(ok)
-    input_query = "aaa want to search for product from sampleCultureProducts table whose shopifyId is equal to \"aaa\" and vendor is equal to \"High-End Boutique Shops\""
-    #update:(ok)
-    #input_query = "I want to update the sampleCultureProducts table to set title equal to \"Handcrafted Indian Pashmina Shawl\" where shopifyId is equal to  \"HandCrafted-Pashmina-Shawl-One\" and handle is equal to \"HPS\"."
-    #delete:(ok)
-    #input_query = "I want to delete products from sampleCultureProducts table whose shopifyId is equal to \"aaa\" and vendor is equal to \"High-End Boutique Shops\""
-    #insert one:(ok)
-    #input_query = "insert one user records into sampleCultureProducts table: shopifyId \"USC-1\" title \"University of Southern California\", with the handle \"USC\""
-    #insert many:(ok)
-    #input_query = "insert two user records into sampleCultureProducts table: shopifyId \"USC-1\" title \"University of Southern California\", with the handle \"USC\" and shopifyId \"DSCI551-1\" title \" Data Management \", with the handle \"DSCI551\""
-    #aggregate:
-    #input_query = "I want to aggregate a query in MongoDB on the city-mongodb including the following stages: join the country-mongodb collection on CountryCode and code, aliasing the results as \"Country_and_City\". Later, join the countrylanguage-mongodb collection on CountryCode and CountryCode, aliasing the results as \"Country_and_Language\", group the documents by CountryCode to calculate \"totalPopulation\" as the values of total Population, collect \"cities\" as the values of Name, list \"languages\" as the values of unique Language, then sort by totalPopulation decreasingly, unwind cities, skip the first 10 results, limit to 5 results, last finally project only the CountryCode, totalPopulation, cities, languages."
+#     global TOKEN_RULES
+#     TOKEN_RULES = [
+#         ("KEYWORD", r"\b(search for|find|select|insert|add|append|create|put|write|store|include|populate|update|modify|edit|change|alter|refresh|adjust|correct|revise|replace|delete|remove|erase|clear|drop|destroy|truncate|discard|sum|count|avg|min|max|aggregate|generate)\b"),
+#         ("RELATION", r"\b(equal to|greater than|less than|not equal to|greater than or equal to|less than or equal to|set|>=|<=|>|<|!=)\b"),  # 关系运算符[relational operators]
+#         ("FIELD", generate_field_patterns(symbol_table)),  # 字段名[fields]  # Pending: change it into the specific fields
+#         #("FIELD", r"\b(_id|shopifyId|title|descriptionHTML|handle|vendor|productType|tags|options|variants|images|createdAt|updatedAt|publishedAt)\b"),
+#         ("LOGICAL_OPERATOR", r"\b(and|or|nor)\b"),  # 逻辑操作符[logical operators]
+#         #("VALUE", r"(\d+|'.*?')"),  # 数值或字符串值[string or number]
+#         #("AS", r"\b(as)\b"),
+#         ("VALUE", r"(\d+|'.*?'|\".*?\")"),
+#         ("AGGREGATION_OPERATOR", r"\b(join|group|sort|unwind|project|limit|skip|lookup)\b"),
+#         ("GROUP_OPERATOR", r"\b(calculate|collect|list)\b"),
+#         ("SORT_OPERATOR", r"\b(decreasingly|increasingly)\b"),
+#         ("TABLE_NAME", generate_field_patterns2(my_table_names)),
+#         ("WHITESPACE", r"\s+"),  # 空格（可以跳过） [whitespace]
+#         ("INVALID", r".")  # 无效字符[invalid characters]
+#     ]
+#     print("token roles")
+#     print(TOKEN_RULES)
+#     print("symbol_table")
+#     print(symbol_table)
+#     # Step 3: Lexical analysis
+#     #nosql
+#     #select:(ok)
+#     input_query = "aaa want to search for product from sampleCultureProducts table whose shopifyId is equal to \"aaa\" and vendor is equal to \"High-End Boutique Shops\""
+#     #update:(ok)
+#     #input_query = "I want to update the sampleCultureProducts table to set title equal to \"Handcrafted Indian Pashmina Shawl\" where shopifyId is equal to  \"HandCrafted-Pashmina-Shawl-One\" and handle is equal to \"HPS\"."
+#     #delete:(ok)
+#     #input_query = "I want to delete products from sampleCultureProducts table whose shopifyId is equal to \"aaa\" and vendor is equal to \"High-End Boutique Shops\""
+#     #insert one:(ok)
+#     #input_query = "insert one user records into sampleCultureProducts table: shopifyId \"USC-1\" title \"University of Southern California\", with the handle \"USC\""
+#     #insert many:(ok)
+#     #input_query = "insert two user records into sampleCultureProducts table: shopifyId \"USC-1\" title \"University of Southern California\", with the handle \"USC\" and shopifyId \"DSCI551-1\" title \" Data Management \", with the handle \"DSCI551\""
+#     #aggregate:
+#     #input_query = "I want to aggregate a query in MongoDB on the city-mongodb including the following stages: join the country-mongodb collection on CountryCode and code, aliasing the results as \"Country_and_City\". Later, join the countrylanguage-mongodb collection on CountryCode and CountryCode, aliasing the results as \"Country_and_Language\", group the documents by CountryCode to calculate \"totalPopulation\" as the values of total Population, collect \"cities\" as the values of Name, list \"languages\" as the values of unique Language, then sort by totalPopulation decreasingly, unwind cities, skip the first 10 results, limit to 5 results, last finally project only the CountryCode, totalPopulation, cities, languages."
     
-    #sql
-    #select
-    #input_query = "aaa want to search for product from Product_data table whose length is greater than 70 and material is equal to \"Wood\"."
-    #insert one:(ok)
-    #input_query = "insert one reviewer records into Reviewer_data table: id 101 country \"United States\" age 30 gender \"Female\" phone_number \"123-456-789\" email \"aaa@gmail.com\" introduction \"I'm Echo.\""
-    #insert many:(ok)
-    #input_query = "insert two user records into Reviewer_data table: id 101 country \"United States\" age 30 gender \"Female\" phone_number \"123-456-789\" email \"aaa@gmail.com\" introduction \"I'm Echo.\" and id 102 country \"China\" age 16 gender \"Male\" phone_number \"213-456-999\" email \"bbb@outlook.com\" introduction \"I'm Tom.\""
-    #update:(ok)
-    #input_query = "I want to update the Vendor_data table to set address equal to \"NULL\" where is_operated is equal to 0 and year is less than 1970."
-    #delete
-    #generate:
-    #input_query = "I want to generate a query in Mysql on the Product_data including the following steps: join the Relationship_product_manufacturer_data table on id and product_id. Later, join the Manufacturer_data table on id and manufacturer_id."
-    #input_query = "I want to generate a query in Mysql on the Product_data including the following steps: join the Relationship_product_manufacturer_data table on id and product_id. Later, join the Manufacturer_data table on id and manufacturer_id, group the table by origin in Product_data table to calculate \"totalPrice\" as the values of total price in Product_data table, then sort by totalPrice decreasingly, limit to 5 results, last finally project only the id in Product_data, name in Product_data, image in Product_data, totalPrice in Product_data."
+#     #sql
+#     #select
+#     #input_query = "aaa want to search for product from Product_data table whose length is greater than 70 and material is equal to \"Wood\"."
+#     #insert one:(ok)
+#     #input_query = "insert one reviewer records into Reviewer_data table: id 101 country \"United States\" age 30 gender \"Female\" phone_number \"123-456-789\" email \"aaa@gmail.com\" introduction \"I'm Echo.\""
+#     #insert many:(ok)
+#     #input_query = "insert two user records into Reviewer_data table: id 101 country \"United States\" age 30 gender \"Female\" phone_number \"123-456-789\" email \"aaa@gmail.com\" introduction \"I'm Echo.\" and id 102 country \"China\" age 16 gender \"Male\" phone_number \"213-456-999\" email \"bbb@outlook.com\" introduction \"I'm Tom.\""
+#     #update:(ok)
+#     #input_query = "I want to update the Vendor_data table to set address equal to \"NULL\" where is_operated is equal to 0 and year is less than 1970."
+#     #delete
+#     #generate:
+#     #input_query = "I want to generate a query in Mysql on the Product_data including the following steps: join the Relationship_product_manufacturer_data table on id and product_id. Later, join the Manufacturer_data table on id and manufacturer_id."
+#     #input_query = "I want to generate a query in Mysql on the Product_data including the following steps: join the Relationship_product_manufacturer_data table on id and product_id. Later, join the Manufacturer_data table on id and manufacturer_id, group the table by origin in Product_data table to calculate \"totalPrice\" as the values of total price in Product_data table, then sort by totalPrice decreasingly, limit to 5 results, last finally project only the id in Product_data, name in Product_data, image in Product_data, totalPrice in Product_data."
 
-    tokens = lexical_analysis(input_query)
-    print(input_query)
+#     tokens = lexical_analysis(input_query)
+#     print(input_query)
 
-    print(f"Tokens: {tokens}")
+#     print(f"Tokens: {tokens}")
 
-    # Step 4: Parsing
-    parser = Parser(tokens)
-    try:
-        ast = parser.parse()
-        print(f"Abstract Syntax Tree (AST): {ast}")
-    except SyntaxError as e:
-        print(f"Parsing error: {e}")
-        return
+#     # Step 4: Parsing
+#     parser = Parser(tokens)
+#     try:
+#         ast = parser.parse()
+#         print(f"Abstract Syntax Tree (AST): {ast}")
+#     except SyntaxError as e:
+#         print(f"Parsing error: {e}")
+#         return
 
-    # Step 5: Semantic analysis
-    semantic_analyzer = SemanticAnalyzer(symbol_table, target)
-    try:
-        semantic_analyzer.analyze(ast)
-        print("Semantic analysis passed.")
-    except SemanticError as e:
-        print(f"Semantic analysis error: {e}")
-        return
+#     # Step 5: Semantic analysis
+#     semantic_analyzer = SemanticAnalyzer(symbol_table, target)
+#     try:
+#         semantic_analyzer.analyze(ast)
+#         print("Semantic analysis passed.")
+#     except SemanticError as e:
+#         print(f"Semantic analysis error: {e}")
+#         return
 
-    # Step 6: Query generation
-    code_generator = CodeGenerator(target)
-    try:
-        if target == "SQL":
-            sql_query = code_generator.generate(ast)
-            print(f"Generated SQL Query: {sql_query}")
-        elif target == "NoSQL":
-            mongo_query = code_generator.generate(ast)
-            print(f"Generated NoSQL Query: {mongo_query}")
-    except ValueError as e:
-        print(f"Query generation error: {e}")
-        return
+#     # Step 6: Query generation
+#     code_generator = CodeGenerator(target)
+#     try:
+#         if target == "SQL":
+#             sql_query = code_generator.generate(ast)
+#             print(f"Generated SQL Query: {sql_query}")
+#         elif target == "NoSQL":
+#             mongo_query = code_generator.generate(ast)
+#             print(f"Generated NoSQL Query: {mongo_query}")
+#     except ValueError as e:
+#         print(f"Query generation error: {e}")
+#         return
 
 if __name__ == "__main__":
-    main()
+    app.run(debug=True, port=6600)
