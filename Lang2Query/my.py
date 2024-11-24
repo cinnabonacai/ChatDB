@@ -1240,7 +1240,7 @@ def main():
         "../Database/NoSQL/countrylanguage-mongodb.json",             # 示例文件 3
         "../Database/NoSQL/sampleCultureProducts.json"
     ]
-    my_file_paths = sql_file_paths
+    my_file_paths = nosql_file_paths
     #nosql_file_path = "../Database/NoSQL/sampleCultureProducts.json"  # Replace with your test JSON file path
     # 提取文件名（包括扩展名）
     ## process_table_names(nosql_file_paths)
@@ -1287,7 +1287,7 @@ def main():
     # Step 3: Lexical analysis
     #nosql
     #select:(ok)
-    #input_query = "aaa want to search for product from sampleCultureProducts table whose shopifyId is equal to \"aaa\" and vendor is equal to \"High-End Boutique Shops\""
+    input_query = "aaa want to search for product from sampleCultureProducts table whose shopifyId is equal to \"aaa\" and vendor is equal to \"High-End Boutique Shops\""
     #update:(ok)
     #input_query = "I want to update the sampleCultureProducts table to set title equal to \"Handcrafted Indian Pashmina Shawl\" where shopifyId is equal to  \"HandCrafted-Pashmina-Shawl-One\" and handle is equal to \"HPS\"."
     #delete:(ok)
@@ -1311,7 +1311,7 @@ def main():
     #delete
     #generate:
     #input_query = "I want to generate a query in Mysql on the Product_data including the following steps: join the Relationship_product_manufacturer_data table on id and product_id. Later, join the Manufacturer_data table on id and manufacturer_id."
-    input_query = "I want to generate a query in Mysql on the Product_data including the following steps: join the Relationship_product_manufacturer_data table on id and product_id. Later, join the Manufacturer_data table on id and manufacturer_id, group the table by origin in Product_data table to calculate \"totalPrice\" as the values of total price in Product_data table, then sort by totalPrice decreasingly, limit to 5 results, last finally project only the id in Product_data, name in Product_data, image in Product_data, totalPrice in Product_data."
+    #input_query = "I want to generate a query in Mysql on the Product_data including the following steps: join the Relationship_product_manufacturer_data table on id and product_id. Later, join the Manufacturer_data table on id and manufacturer_id, group the table by origin in Product_data table to calculate \"totalPrice\" as the values of total price in Product_data table, then sort by totalPrice decreasingly, limit to 5 results, last finally project only the id in Product_data, name in Product_data, image in Product_data, totalPrice in Product_data."
 
     tokens = lexical_analysis(input_query)
     print(input_query)
