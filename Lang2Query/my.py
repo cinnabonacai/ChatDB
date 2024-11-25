@@ -4,6 +4,7 @@ import json, csv
 import os
 
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 my_table_names = []
 
@@ -1062,7 +1063,7 @@ class CodeGenerator:
             update_many = True
             update_query = f"db.{table_name}."
             update_query += "updateMany" if update_many else "updateOne"
-            update_query += f"({json.dumps(query)}, {json.dumps({'$set': updates})});"
+            update_query += f"({query}, {{'$set': {updates}}});"
             #update_query += f"({query}, {'$set': {updates}});"
             return update_query
         
@@ -1080,7 +1081,8 @@ class CodeGenerator:
             delete_query = f"db.{table_name}."
             #delete_query += "deleteMany" if delete_many else "deleteOne"
             delete_query += "deleteMany"
-            delete_query += f"({json.dumps(query)};"
+            delete_query += f"({query};"
+            #delete_query += f"({json.dumps(query)};"
             return delete_query
         
         # elif ast.type == "AGGREGATE_QUERY":
@@ -1225,6 +1227,7 @@ class CodeGenerator:
         }.get(relation.lower(), relation)
 
 app = Flask(__name__)
+CORS(app)
 
 @app.route('/', methods=['GET'])
 def index():
@@ -1242,43 +1245,55 @@ def generate_result():
 
         # sample
 
-        sql_file_paths = [
-           "../Database/SQL/data/Manufacturer_data.csv",
-           "../Database/SQL/data/Product_data.csv",
-           "../Database/SQL/data/Reviewer_data.csv",
-           "../Database/SQL/data/Warehouse_data.csv",
-           "../Database/SQL/data/Vendor_data.csv",
-           "../Database/SQL/data/Relationship_product_manufacturer_data.csv"
-        ]
+        # sql_file_paths = [
+        #    "../Database/SQL/data/Manufacturer_data.csv",
+        #    "../Database/SQL/data/Product_data.csv",
+        #    "../Database/SQL/data/Reviewer_data.csv",
+        #    "../Database/SQL/data/Warehouse_data.csv",
+        #    "../Database/SQL/data/Vendor_data.csv",
+        #    "../Database/SQL/data/Relationship_product_manufacturer_data.csv"
+        # ]
          
-        nosql_file_paths = [
-            "../Database/NoSQL/city-mongodb.json",  # 示例文件 1
-            "../Database/NoSQL/country-mongodb.json",                 # 示例文件 2
-            "../Database/NoSQL/countrylanguage-mongodb.json",             # 示例文件 3
-            "../Database/NoSQL/sampleCultureProducts.json"
-        ]
+        # nosql_file_paths = [
+        #     "../Database/NoSQL/city-mongodb.json",  # 示例文件 1
+        #     "../Database/NoSQL/country-mongodb.json",                 # 示例文件 2
+        #     "../Database/NoSQL/countrylanguage-mongodb.json",             # 示例文件 3
+        #     # "../Database/NoSQL/sampleCultureProducts.json"
+        # ]
         
-        input_query = "I want to generate a query in Mysql on the Product_data including the following steps: join the Relationship_product_manufacturer_data table on id and product_id. Later, join the Manufacturer_data table on id and manufacturer_id, group the table by origin in Product_data table to calculate \"totalPrice\" as the values of total price in Product_data table, then sort by totalPrice decreasingly, limit to 5 results, last finally project only the id in Product_data, name in Product_data, image in Product_data, totalPrice in Product_data."
+        # input_query = "I want to aggregate a query in MongoDB on the city-mongodb including the following stages: join the country-mongodb collection on CountryCode and code, aliasing the results as \"Country_and_City\". Later, join the countrylanguage-mongodb collection on CountryCode and CountryCode, aliasing the results as \"Country_and_Language\", group the documents by CountryCode to calculate \"totalPopulation\" as the values of total Population, collect \"cities\" as the values of Name, list \"languages\" as the values of unique Language, then sort by totalPopulation decreasingly, unwind cities, skip the first 10 results, limit to 5 results, last finally project only the CountryCode, totalPopulation, cities, languages."
         
+        input_query = request.args.get("query")
+        print("My input query is: ", input_query)
+        
+        file_strings = request.args.get("files")
+
+        file_paths = json.loads(file_strings)
+
+
+
         if not input_query:
             return jsonify({"error": "The input query is required."}, 400)
         
-        # change the name to file_paths based on the variable file_paths
-        if not nosql_file_paths:
+        # # change the name to file_paths based on the variable file_paths
+        # if not nosql_file_paths:
+        #     return jsonify({"error": "The file paths are required."}, 400)
+        
+        if not file_paths:
             return jsonify({"error": "The file paths are required."}, 400)
         
-        if not sql_file_paths:
-            return jsonify({"error": "The file paths are required."}, 400)
-        
+        # if not file_paths:
+        #     return jsonify({"error": "The file paths are required."}, 400)
+
         # step 2: process each table name one by one, thus generating each symbol table according to the file paths
         # change nosql_file_paths to file_paths
         
         #process_table_names(nosql_file_paths)
         
-        process_table_names(sql_file_paths)
+        process_table_names(file_paths)
         try:
             # target = generate_separate_symbol_tables(nosql_file_paths)
-            target = generate_separate_symbol_tables(sql_file_paths)
+            target = generate_separate_symbol_tables(file_paths)
         except ValueError as e:
             return jsonify({"error": f"Error loading symbol table: {e}"}, 400)
 
@@ -1304,19 +1319,25 @@ def generate_result():
 
         # Step 4: Lexcial Analysis
         tokens = lexical_analysis(input_query)
+        print("My tokens are: ", tokens)
         
         # Step 5: Parsing
         parser = Parser(tokens)
         try:
             ast = parser.parse()
+            print("My AST is: ", ast)
         except SyntaxError as e:
+            print("My error is: ", e)
             return jsonify({"error": f"Parsing error: {e}"}, 400)
+        
         
         # Step 6: Semantic Analysis
         analyzer = SemanticAnalyzer(symbol_table, target)
         try:
             analyzer.analyze(ast)
+            print("My analyzer is: ", analyzer)
         except SemanticError as e:
+            print("My error is: ", e)
             return jsonify({"error": f"Semantic error: {e}"}, 400)
         
         # Step 7: Code Generator
@@ -1326,16 +1347,21 @@ def generate_result():
                 result = generator.generate_sql(ast)
             elif target == 'NoSQL':
                 result = generator.generate_mongo(ast)
+            print("My result is: ", result)
         except ValueError as e:
+            print("My error is: ", e)
             return jsonify({"error": f"Code generation error: {e}"}, 400)
         
         
         # Step 8: Return the result
-        return jsonify({
-        "target": target,
-        "result": result,
-        "ast": repr(ast)
-        })
+
+        data_collected = {
+            "target": target,
+            "result": result,
+            "ast": repr(ast)
+        }
+        print("My data collected becomes: ", data_collected)
+        return jsonify(data_collected)
     except Exception as e:
          return jsonify({"error": f"The server error occurred: {e}"}, 500)
 

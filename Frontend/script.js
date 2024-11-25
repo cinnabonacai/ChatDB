@@ -1,75 +1,87 @@
-const chatbox = document.getElementById('chatbox');
-const userInput = document.getElementById('user-input');
-const submitBtn = document.getElementById('submit-btn');
-const fileUpload = document.getElementById('file-upload');
-const uploadedFileInfo = document.getElementById('uploaded-file-info');
 
-let uploadedFile = null;
+const chatbox = document.getElementById('chatbox'); // the elements embedded into the chatbox
+const userInput = document.getElementById('user-input'); // the input field where the user types his/her message
 
-// Function to send the message
-function sendMessage() {
-    const userQuestion = userInput.value.trim();
 
-    // Check if the input is empty
-    if (userQuestion === '') {
-        return; // Don't send an empty message
-    }
 
-    userInput.value = ''; // Clear input field
 
-    // Display user's question
-    displayMessage('user', userQuestion);
 
-    // Prepare data to send to backend
-    const formData = new FormData();
-    formData.append('question', userQuestion);
-    if (uploadedFile) {
-        formData.append('file', uploadedFile);
-    }
 
-    // Send userQuestion and file (if any) to your backend
-    fetch('/your-backend-endpoint', {  // Replace with your actual endpoint
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        // Display response in chatbox
-        displayMessage('bot', data.response); 
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        displayMessage('bot', "Sorry, there was an error processing your request.");
+let attachedFiles = []; // all files required to be uploaded
+/* Function to upload one or more files at the input text, then move one keyword downard to generate the input text*/
+function handleFileUpload() {
+    let fileUpload = document.getElementById('file-upload');
+    const allFiles = Array.from(fileUpload.files);
+   
+    // Get all files
+    allFiles.forEach((file) => {
+        if (file.name.endsWith('.json')) {
+            attachedFiles.push(`../Database/NoSQL/${file.name}`);
+        }
+        else if (file.name.endsWith('.csv')) {
+            attachedFiles.push(`../Database/SQL/data/${file.name}`);
+        }    
+        userInput.value += `${file.name} `
     });
 }
 
-function handleFileUpload(event) {
-    uploadedFile = event.target.files[0];
-    if (uploadedFile) {
-        uploadedFileInfo.textContent = `Uploaded file: ${uploadedFile.name}`;
-        displayMessage('user', `File uploaded: ${uploadedFile.name}`);
+
+/* Function to send the message to the backend */
+function sendMessage() {
+
+    /* step 1: retrieve the user's question */
+    
+    // (1) trim() removes the whitespace from both ends of the string
+    const userTyped = userInput.value.trim();
+
+    // (2) Check if the input is empty. If so, the empty message will be returned
+    if (userTyped === '') {
+        return; // Don't send an empty message
     }
-}
 
-// Event listener for file upload
-fileUpload.addEventListener('change', handleFileUpload);
+    // (3) Clear the input field
+    userInput.value = ''; // Clear input field
 
-// Event listener for submit button
-submitBtn.addEventListener('click', sendMessage);
-
-// Event listener for Enter key press
-userInput.addEventListener('keyup', (event) => {
-    if (event.key === 'Enter') {
-        sendMessage();
-    }
-});
-
-function displayMessage(sender, message) {
+    // (4) place the content at the chatbox
+    const query_text = userTyped.split('\n')[1]; 
+    
+    
+    //(5) create a new div element to display the user's message 
     const messageElement = document.createElement('div');
-    messageElement.classList.add('message', `${sender}-message`);
-    messageElement.textContent = message;
+    messageElement.classList.add('message', 'user-message');
+    messageElement.textContent = query_text;
     chatbox.appendChild(messageElement);
 
-    // Auto-scroll to bottom
-    chatbox.scrollTop = chatbox.scrollHeight;
+    // (6) stimulate a bot response
+    setTimeout(() => {
+        
+        let responseQuery = '';
+        // send the message to the backend using a variable called 'data'
+        fetch(`http://localhost:6600/generate_query?query=${query_text}&files=${JSON.stringify(attachedFiles)}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to send the message')
+            }
+            return response.json();
+        })
+        .then(data => {
+            
+            responseQuery = data['result']
+            
+            console.log("My current responseQuery is: " + responseQuery);
+            const responseElement = document.createElement('div');
+            responseElement.classList.add('message', 'bot-message');
+            responseElement.textContent = responseQuery;
+            chatbox.appendChild(responseElement);
+            attachedFiles = [];
+        })
+        .catch(error => {
+            console.error("Error occurred: ", error);
+        })
+    }, 1000);
 }
