@@ -1572,7 +1572,6 @@ def generate_result():
             if len(tokens)==1:
                 print("task 2")
                 res=generate_example_query("", 2, target, file_paths)
-                print(f"The f**king result query using d**n example only is:{res}")
 
             else:
                 print("task 3")
@@ -1580,7 +1579,6 @@ def generate_result():
                     return jsonify({"error": f"Type error: please input the type of query."}, 400)
                 example_value=tokens[1].value
                 res=generate_example_query(example_value, 3, target, file_paths)
-                print(f"The f**king result query using d**n multiple examples is:{res}")
             
             data_collected = {
                 "target": "",
