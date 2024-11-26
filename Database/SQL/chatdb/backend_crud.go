@@ -11,7 +11,7 @@ import (
     _ "github.com/go-sql-driver/mysql"
 )
 
-func main() {
+func main() {       
     // connect to MySQL database
     db, err := sql.Open("mysql", "root:Ilikedsci551@tcp(127.0.0.1:3306)/project551")
     if err != nil {

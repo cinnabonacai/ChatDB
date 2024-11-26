@@ -1,8 +1,7 @@
 import re
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Union
 import json, csv
 import os
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -98,6 +97,88 @@ def infer_nosql_type(value: Any) -> str:
             return "date"
     return "string"
 
+def get_fields_and_first_two_rows_from_csv(file_path: str) -> Tuple[List[str], List[Dict[str, Union[str, int, float]]]]:
+    """
+    Return fields and the first two rows of data from a CSV file.
+    
+    :param file_path: Path to the CSV file.
+    :return: A tuple containing a list of field names and a list of the first two rows as dictionaries.
+    """
+    with open(file_path, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        fields = reader.fieldnames
+        if not fields:
+            raise ValueError("CSV file is empty or has no headers.")
+        
+        # Get the first two rows
+        rows = []
+        for i, row in enumerate(reader):
+            if i >= 2:  # Stop after the first two rows
+                break
+            rows.append(row)
+        
+        return fields, rows
+
+
+def get_fields_and_first_two_rows_from_json(file_path: str) -> Tuple[List[str], List[Dict[str, Union[str, int, float]]]]:
+    """
+    Return fields and the first two rows of data from a JSON file.
+    
+    :param file_path: Path to the JSON file.
+    :return: A tuple containing a list of field names and a list of the first two rows as dictionaries.
+    """
+    with open(file_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        
+        if isinstance(data, dict):
+            # If the root is a dictionary, treat it as a single record
+            fields = list(data.keys())
+            rows = [data]  # Single record in JSON
+            return fields, rows[:2]  # Ensure compatibility with "first two rows" requirement
+        
+        elif isinstance(data, list):
+            # If the root is a list of dictionaries
+            if not data:
+                raise ValueError("JSON file is empty.")
+            
+            fields = list(data[0].keys())
+            rows = data[:2]  # Get the first two records
+            return fields, rows
+        
+        else:
+            raise ValueError("Unsupported JSON structure. Expected a dictionary or a list.")
+
+# 全局变量
+example_tables = {}
+
+def populate_example_tables(paths: List[str]) -> None:
+    """
+    根据提供的路径列表调用之前的函数获取字段和前两行数据，并存储到全局变量 example_tables 中。
+    """
+    global example_tables
+    example_tables = {}  # 清空 example_tables
+    
+    for path in paths:
+        print("Processing file:", path)
+        if path.endswith('.csv'):
+            table_name = os.path.splitext(os.path.basename(path))[0]
+            fields, rows = get_fields_and_first_two_rows_from_csv(path)
+            example_tables[table_name] = {
+                "fields": fields,
+                "rows": rows
+            }
+        elif path.endswith('.json'):
+            table_name = os.path.splitext(os.path.basename(path))[0]
+            fields, rows = get_fields_and_first_two_rows_from_json(path)
+            example_tables[table_name] = {
+                "fields": fields,
+                "rows": rows
+            }
+        else:
+            raise ValueError(f"Unsupported file format: {path}")
+    
+    if not example_tables:
+        raise ValueError("No valid files provided to populate example tables.")
 
 def detect_field_types_from_csv(file_path: str) -> Dict[str, str]:
    # Detect Specific Field Types from CSV
@@ -595,7 +676,7 @@ class Parser:
                 pipeline.append(f"GROUP BY {group_table}.{group_field}")
                 #group_operations = {}  # To store parsed group operations
                 #group_operations['_id'] = f"${group_field}"
-            # Iterate until a non-group-related token or end of the stream
+                # Iterate until a non-group-related token or end of the stream
                 while self.current_token().type == "GROUP_OPERATOR":
                     current_operator = self.consume("GROUP_OPERATOR").value  # Consume the GROUP_OPERATOR token
                     current_value = self.consume("VALUE").value.strip("\"")  # Consume the VALUE token
@@ -956,7 +1037,6 @@ class CodeGenerator:
         elif ast.type == "DELETE_QUERY":
             joins = kwargs.get("joins", [])
             query = f"DELETE FROM {table_name}"
-
             if joins:
                 for join in joins:
                     join_table = join.get("table")
@@ -1226,6 +1306,157 @@ class CodeGenerator:
             "less than or equal to": "$lte"
         }.get(relation.lower(), relation)
 
+def execute_query(input, files):
+    input_query = input
+    print("My input query is: ", input_query)
+    file_paths = files
+    if not input_query:
+        return jsonify({"error": "The input query is required."}, 400)
+    
+    # # change the name to file_paths based on the variable file_paths
+    # if not nosql_file_paths:
+    #     return jsonify({"error": "The file paths are required."}, 400)
+    
+    if not file_paths:
+        return jsonify({"error": "The file paths are required."}, 400)
+    
+    # if not file_paths:
+    #     return jsonify({"error": "The file paths are required."}, 400)
+
+    # step 2: process each table name one by one, thus generating each symbol table according to the file paths
+    # change nosql_file_paths to file_paths
+    
+    #process_table_names(nosql_file_paths)
+    
+    process_table_names(file_paths)
+    try:
+        # target = generate_separate_symbol_tables(nosql_file_paths)
+        target = generate_separate_symbol_tables(file_paths)
+    except ValueError as e:
+        return jsonify({"error": f"Error loading symbol table: {e}"}, 400)
+
+    # Step 3: Define token rules used to analyze each process
+    global TOKEN_RULES
+    TOKEN_RULES = [
+        ("Explore", r"\b(explore|investigate|examine|inspect|analyze)"),
+        ("Example", r"\b(example)"),
+        ("KEYWORD", r"\b(search for|find|select|insert|add|append|create|put|write|store|include|populate|update|modify|edit|change|alter|refresh|adjust|correct|revise|replace|delete|remove|erase|clear|drop|destroy|truncate|discard|sum|count|avg|min|max|aggregate|generate)\b"),
+        ("RELATION", r"\b(equal to|greater than|less than|not equal to|greater than or equal to|less than or equal to|set|>=|<=|>|<|!=)\b"),  # 关系运算符[relational operators]
+        ("FIELD", generate_field_patterns(symbol_table)),  # 字段名[fields]  # Pending: change it into the specific fields
+        #("FIELD", r"\b(_id|shopifyId|title|descriptionHTML|handle|vendor|productType|tags|options|variants|images|createdAt|updatedAt|publishedAt)\b"),
+        ("LOGICAL_OPERATOR", r"\b(and|or|nor)\b"),  # 逻辑操作符[logical operators]
+        #("VALUE", r"(\d+|'.*?')"),  # 数值或字符串值[string or number]
+        #("AS", r"\b(as)\b"),
+        ("VALUE", r"(\d+|'.*?'|\".*?\")"),
+        ("AGGREGATION_OPERATOR", r"\b(join|group|sort|unwind|project|limit|skip|lookup|where)\b"),
+        ("GROUP_OPERATOR", r"\b(calculate|collect|list)\b"),
+        ("SORT_OPERATOR", r"\b(decreasingly|increasingly)\b"),
+        ("TABLE_NAME", generate_field_patterns2(my_table_names)),
+        ("WHITESPACE", r"\s+"),  # 空格（可以跳过） [whitespace]
+        ("INVALID", r".")  # 无效字符[invalid characters]
+    ]
+    #note: there is where in the AGGREGATION_OPERATOR
+
+    # Step 4: Lexcial Analysis
+    tokens = lexical_analysis(input_query)
+    print("My tokens are: ", tokens)
+
+    # Step 5: Parsing
+    parser = Parser(tokens)
+    try:
+        ast = parser.parse()
+        print("My AST is: ", ast)
+    except SyntaxError as e:
+        print("My error is: ", e)
+        return jsonify({"error": f"Parsing error: {e}"}, 400)
+    
+    
+    # Step 6: Semantic Analysis
+    analyzer = SemanticAnalyzer(symbol_table, target)
+    try:
+        analyzer.analyze(ast)
+        print("My analyzer is: ", analyzer)
+    except SemanticError as e:
+        print("My error is: ", e)
+        return jsonify({"error": f"Semantic error: {e}"}, 400)
+    
+    # Step 7: Code Generator
+    generator = CodeGenerator(target)
+    try:
+        if target == 'SQL':
+            result = generator.generate_sql(ast)
+        elif target == 'NoSQL':
+            result = generator.generate_mongo(ast)
+        print("My result is: ", result)
+    except ValueError as e:
+        print("My error is: ", e)
+        return jsonify({"error": f"Code generation error: {e}"}, 400)
+    return result,target
+
+def generate_example_query(example_value, task_number, my_target, file_paths):
+    print(f"my task number {task_number}")
+    print(f"example_value{example_value}")
+    my_input=[]
+    my_type=[]
+    if task_number==2 or example_value == "join":
+        my_type.append("join")
+        if my_target== 'SQL':
+            my_input.append("generate a query in Mysql on the Relationship_product_manufacturer_data to join the Product_data table on product_id and id. Later, join the Manufacturer_data table on manufacturer_id and id.")
+        else:
+            my_input.append("aggregate a query in MongoDB on the city including the following stages: join the country collection on CountryCode and code, aliasing the results as \"Country_and_City\". Later, join the countrylanguage collection on CountryCode and CountryCode, aliasing the results as \"Country_and_Language\"")
+    if task_number==2 or example_value == "group":
+        my_type.append("group")
+        if my_target== 'SQL':
+            my_input.append("generate a query in Mysql on the Product_data to group the table by origin in Product_data table to calculate \"totalPrice\" as the values of total price in Product_data table, and project only the origin in Product_data.")
+        else:
+            my_input.append("aggregate a query in MongoDB on the city including the following stages: group by CountryCode decreasingly, and then project Name, Population in city")
+    if task_number==2 or example_value == "sort":
+        my_type.append("sort")
+        if my_target== 'SQL':
+            my_input.append("generate a query in Mysql on the Product_data to sort by price decreasingly, and project only the name in Product_data.")
+        else:
+            my_input.append("aggregate a query in MongoDB on the city including the following stages: sort by CountryCode decreasingly, and then project Name, Population in city")
+    if task_number==2 or example_value == "limit":
+        my_type.append("limit")
+        if my_target== 'SQL':
+            my_input.append("generate a query in Mysql on the Product_data including the following steps: limit to 5 results, then finally project only the origin in Product_data.")
+        else:
+            my_input.append("aggregate a query in MongoDB on the city including the following stages:  limit the first 10 results, and then project Name, Population in city")
+    if task_number==2 or example_value == "where":
+        my_type.append("where")
+        if my_target== 'SQL':
+            my_input.append("search for product from Product_data table whose length is greater than 70 and material is equal to \"Wood\".")
+        else:
+            my_input.append("search for product from sampleCultureProducts table whose shopifyId is equal to \"aaa\" and vendor is equal to \"High-End Boutique Shops\"")
+    my_res=my_target+" example: \n"
+    print(f"my_input: {my_input}")
+    for i in range(0, len(my_input)):
+        if task_number==3:
+            #my_res+=f"{my_target}: \n"
+            my_res+="natural language representation: \n"
+            my_res+=my_input[i]+"\n"
+            res1, tar1=execute_query(my_input[i], file_paths)
+            my_res+="database query: \n"
+            my_res+=res1+"\n"
+            #my_res+="nosql: \n"
+            #my_res+="natural language representation: \n"
+            #my_res+=my_input2[i]+"\n"
+            #res2, tar2=execute_query(my_input2[i], nosql_file_paths)
+            #my_res+="database query: \n"
+            #my_res+=res2+"\n\n"
+        else:
+            print("Only With Example Query without mentioning specific command")
+            #my_res+=my_target+" example: \n"
+            print(f"My result becomes:{my_res}")
+            res1, tar1=execute_query(my_input[i], file_paths)
+            my_res+=f"{my_type[i]} query: \n"
+            my_res+=res1+"\n\n"
+            print(f"My final result becomes {my_res}")
+            #res2, tar2=execute_query(my_input2[i], nosql_file_paths)
+            #my_res+="nosql query: \n"
+            #my_res+=res2+"\n\n"
+    return my_res
+
 app = Flask(__name__)
 CORS(app)
 
@@ -1264,7 +1495,7 @@ def generate_result():
         # input_query = "I want to aggregate a query in MongoDB on the city-mongodb including the following stages: join the country-mongodb collection on CountryCode and code, aliasing the results as \"Country_and_City\". Later, join the countrylanguage-mongodb collection on CountryCode and CountryCode, aliasing the results as \"Country_and_Language\", group the documents by CountryCode to calculate \"totalPopulation\" as the values of total Population, collect \"cities\" as the values of Name, list \"languages\" as the values of unique Language, then sort by totalPopulation decreasingly, unwind cities, skip the first 10 results, limit to 5 results, last finally project only the CountryCode, totalPopulation, cities, languages."
         
         input_query = request.args.get("query")
-        print("My input query is: ", input_query)
+        print("My input query at backend is: ", input_query)
         
         file_strings = request.args.get("files")
 
@@ -1301,6 +1532,8 @@ def generate_result():
         # Step 3: Define token rules used to analyze each process
         global TOKEN_RULES
         TOKEN_RULES = [
+            ("Explore", r"\b(explore|investigate|examine|inspect|analyze)"),
+            ("Example", r"\b(example)"),
             ("KEYWORD", r"\b(search for|find|select|insert|add|append|create|put|write|store|include|populate|update|modify|edit|change|alter|refresh|adjust|correct|revise|replace|delete|remove|erase|clear|drop|destroy|truncate|discard|sum|count|avg|min|max|aggregate|generate)\b"),
             ("RELATION", r"\b(equal to|greater than|less than|not equal to|greater than or equal to|less than or equal to|set|>=|<=|>|<|!=)\b"),  # 关系运算符[relational operators]
             ("FIELD", generate_field_patterns(symbol_table)),  # 字段名[fields]  # Pending: change it into the specific fields
@@ -1309,18 +1542,56 @@ def generate_result():
             #("VALUE", r"(\d+|'.*?')"),  # 数值或字符串值[string or number]
             #("AS", r"\b(as)\b"),
             ("VALUE", r"(\d+|'.*?'|\".*?\")"),
-            ("AGGREGATION_OPERATOR", r"\b(join|group|sort|unwind|project|limit|skip|lookup)\b"),
+            ("AGGREGATION_OPERATOR", r"\b(join|group|sort|unwind|project|limit|skip|lookup|where)\b"),
             ("GROUP_OPERATOR", r"\b(calculate|collect|list)\b"),
             ("SORT_OPERATOR", r"\b(decreasingly|increasingly)\b"),
             ("TABLE_NAME", generate_field_patterns2(my_table_names)),
             ("WHITESPACE", r"\s+"),  # 空格（可以跳过） [whitespace]
             ("INVALID", r".")  # 无效字符[invalid characters]
         ]
+        #note: there is where in the AGGREGATION_OPERATOR
 
         # Step 4: Lexcial Analysis
         tokens = lexical_analysis(input_query)
         print("My tokens are: ", tokens)
+
+        # Step 5: Check type
+        if tokens[0].type == "Explore":
+            try:
+                populate_example_tables(file_paths)
+            except ValueError as e:
+                return jsonify({"error": f"Error loading example from table: {e}"}, 400)
+            data_collected = {
+                "target": "",
+                "result": repr(example_tables),
+                "ast": ""
+            }
+            print("My data collected becomes: ", data_collected)
+            return jsonify(data_collected)
+        elif tokens[0].type == "Example":
+            if len(tokens)==1:
+                print("task 2")
+                res=generate_example_query("", 2, target, file_paths)
+                print(f"The f**king result query using d**n example only is:{res}")
+
+            else:
+                print("task 3")
+                if tokens[1].type!="AGGREGATION_OPERATOR":
+                    return jsonify({"error": f"Type error: please input the type of query."}, 400)
+                example_value=tokens[1].value
+                res=generate_example_query(example_value, 3, target, file_paths)
+                print(f"The f**king result query using d**n multiple examples is:{res}")
+            
+            data_collected = {
+                "target": "",
+                "result": res,
+                "ast": ""
+            }
+            
+            print("My data collected becomes: ", data_collected)
+            return jsonify(data_collected)
         
+
         # Step 5: Parsing
         parser = Parser(tokens)
         try:
@@ -1352,9 +1623,8 @@ def generate_result():
             print("My error is: ", e)
             return jsonify({"error": f"Code generation error: {e}"}, 400)
         
-        
         # Step 8: Return the result
-
+        print(f"My final res: {result}")
         data_collected = {
             "target": target,
             "result": result,
