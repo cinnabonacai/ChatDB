@@ -20,14 +20,14 @@ func main() {
     defer db.Close()
 
     // import CSV files into tables
-    importCSVToTable(db, "../data/Vendor_data.csv", "Vendor")
-    importCSVToTable(db, "../data/Manufacturer_data.csv", "Manufacturer")
-    importCSVToTable(db, "../data/Reviewer_data.csv", "Reviewer")
-    importCSVToTable(db, "../data/Warehouse_data.csv", "Warehouse")
-    importCSVToTable(db, "../data/Product_data.csv", "Product")
-    importCSVToTable(db, "../data/Relationship_product_vendor_data.csv", "Relationship_Product_Vendor")
-    importCSVToTable(db, "../data/Relationship_product_manufacturer_data.csv", "Relationship_Product_Manufacturer")
-    importCSVToTable(db, "../data/Relationship_product_reviewer_data.csv", "Relationship_Product_Reviewer")
+    importCSVToTable(db, "../data/Vendor_data.csv", "Vendor_data")
+    importCSVToTable(db, "../data/Manufacturer_data.csv", "Manufacturer_data")
+    importCSVToTable(db, "../data/Reviewer_data.csv", "Reviewer_data")
+    importCSVToTable(db, "../data/Warehouse_data.csv", "Warehouse_data")
+    importCSVToTable(db, "../data/Product_data.csv", "Product_data")
+    importCSVToTable(db, "../data/Relationship_product_vendor_data.csv", "Relationship_Product_Vendor_data")
+    importCSVToTable(db, "../data/Relationship_product_manufacturer_data.csv", "Relationship_Product_Manufacturer_data")
+    importCSVToTable(db, "../data/Relationship_product_reviewer_data.csv", "Relationship_Product_Reviewer_data")
 
     fmt.Println("Data import is complete!")
 }

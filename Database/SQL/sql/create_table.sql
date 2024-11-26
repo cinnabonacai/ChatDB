@@ -1,4 +1,4 @@
-create table Vendor(
+create table Vendor_data(
 	id int primary key,
 	name VARCHAR(255),
 	year INT,
@@ -12,7 +12,7 @@ create table Vendor(
 	is_operated BOOLEAN
 );
 
-create table Manufacturer(
+create table Manufacturer_data(
 	id INT primary key,
 	name VARCHAR(255),
 	year INT,
@@ -25,7 +25,7 @@ create table Manufacturer(
 	is_made BOOLEAN
 );
 
-create table Reviewer(
+create table Reviewer_data(
 	id int primary key,
 	country VARCHAR(250),
 	-- rating DECIMAL,
@@ -39,7 +39,7 @@ create table Reviewer(
 	password VARCHAR(250)
 );
 
-create table Warehouse(
+create table Warehouse_data(
 	id INT primary key,
 	name VARCHAR(50),
 	address VARCHAR(300),
@@ -58,7 +58,7 @@ create table Warehouse(
 	is_used BOOLEAN
 );
 
-create table Product(
+create table Product_data(
 	id INT primary key,
 	name varchar(255),
 	-- Vendor_id INT(FK)
@@ -81,37 +81,37 @@ create table Product(
 	is_active BOOLEAN
 );
 
-create table Relationship_Product_Vendor(
+create table Relationship_Product_Vendor_data(
 	product_id INT,
 	vendor_id INT,
-	foreign key(product_id) references Product(id),
-	foreign key(vendor_id) references Vendor(id),
+	foreign key(product_id) references Product_data(id),
+	foreign key(vendor_id) references Vendor_data(id),
 	primary key(product_id, vendor_id)
 );
 
-create table Relationship_Product_Reviewer(
+create table Relationship_Product_Reviewer_data(
 	product_id INT,
 	reviewer_id INT,
 	comment TEXT,
 	comment_time DATE,
 	rating DECIMAL,
-	foreign key(product_id) references Product(id),
-	foreign key(reviewer_id) references Reviewer(id),
+	foreign key(product_id) references Product_data(id),
+	foreign key(reviewer_id) references Reviewer_data(id),
 	primary key(product_id, reviewer_id)
 );
 
-create table Relationship_Product_Manufacturer(
+create table Relationship_Product_Manufacturer_data(
 	product_id INT,
 	manufacturer_id INT,
-	foreign key(product_id) references Product(id),
-	foreign key(manufacturer_id) references Manufacturer(id),
+	foreign key(product_id) references Product_data(id),
+	foreign key(manufacturer_id) references Manufacturer_data(id),
 	primary key(product_id, manufacturer_id)
 );
 
-create table Relationship_Product_Warehouse(
+create table Relationship_Product_Warehouse_data(
 	product_id INT,
 	warehouse_id INT,
-	foreign key(product_id) references Product(id),
-	foreign key(warehouse_id) references Warehouse(id),
+	foreign key(product_id) references Product_data(id),
+	foreign key(warehouse_id) references Warehouse_data(id),
 	primary key(product_id, warehouse_id)
 );
