@@ -4,6 +4,8 @@ import json, csv
 import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from execute_sql import execute_sql_query
+from execute_nosql import execute_nosql_query
 
 my_table_names = []
 
@@ -1288,7 +1290,7 @@ class CodeGenerator:
             "less than or equal to": "$lte"
         }.get(relation.lower(), relation)
 
-def execute_query(input, files):
+def my_execute_query(input, files):
     input_query = input
     print("My input query is: ", input_query)
     file_paths = files
@@ -1417,24 +1419,24 @@ def generate_example_query(example_value, task_number, my_target, file_paths):
             #my_res+=f"{my_target}: \n"
             my_res+="natural language representation: \n"
             my_res+=my_input[i]+"\n"
-            res1, tar1=execute_query(my_input[i], file_paths)
+            res1, tar1=my_execute_query(my_input[i], file_paths)
             my_res+="\ndatabase query: \n"
             my_res+=res1+"\n"
             #my_res+="nosql: \n"
             #my_res+="natural language representation: \n"
             #my_res+=my_input2[i]+"\n"
-            #res2, tar2=execute_query(my_input2[i], nosql_file_paths)
+            #res2, tar2=my_execute_query(my_input2[i], nosql_file_paths)
             #my_res+="database query: \n"
             #my_res+=res2+"\n\n"
         else:
             print("Only With Example Query without mentioning specific command")
             #my_res+=my_target+" example: \n"
             print(f"My result becomes:{my_res}")
-            res1, tar1=execute_query(my_input[i], file_paths)
+            res1, tar1=my_execute_query(my_input[i], file_paths)
             my_res+=f"\n{my_type[i]} query: \n"
             my_res+=res1+"\n"
             print(f"My final result becomes {my_res}")
-            #res2, tar2=execute_query(my_input2[i], nosql_file_paths)
+            #res2, tar2=my_execute_query(my_input2[i], nosql_file_paths)
             #my_res+="nosql query: \n"
             #my_res+=res2+"\n\n"
     return my_res
@@ -1457,8 +1459,6 @@ def generate_result():
 
         file_paths = json.loads(file_strings)
 
-
-
         if not input_query:
             return jsonify({"error": "The input query is required."}, 400)
         
@@ -1472,6 +1472,50 @@ def generate_result():
         # if not file_paths:
         #     return jsonify({"error": "The file paths are required."}, 400)
 
+        # step 0: check if input_query need to be executed
+        #execute sql
+        if input_query.startswith("execute sql:"):
+            extracted_query = input_query[len("execute sql: "):]
+            print("Extracted query:", extracted_query)
+            success, exe_result = execute_sql_query(extracted_query)
+            if success:
+                print("Query executed successfully:")
+                for row in exe_result:
+                    print(row)
+                data_collected = {
+                    "target": "",
+                    "result": exe_result,
+                    "ast": ""
+                }
+                print("My data collected becomes: ", data_collected)
+                return jsonify(data_collected)
+            else:
+                print("Error executing query:", exe_result)
+                return jsonify({"error": "Error executing sql query"}, 400)
+        else:
+            print("The string does not need to be execute in sql")
+        #execute nosql
+        if input_query.startswith("execute nosql:"):
+            extracted_query = input_query[len("execute nosql: "):]
+            print("Extracted query:", extracted_query)
+            #success, exe_result = execute_nosql_query(extracted_query, file_paths)
+            success, exe_result = execute_nosql_query(extracted_query, [])
+            if success:
+                print("Query executed successfully:")
+                for doc in exe_result:
+                    print(doc)
+                data_collected = {
+                    "target": "",
+                    "result": json.dumps(exe_result),
+                    "ast": ""
+                }
+                print("My data collected becomes: ", data_collected)
+                return jsonify(data_collected)
+            else:
+                print("Error executing query:", result)
+                return jsonify({"error": "Error executing sql query:"}, 400)
+        else:
+            print("The string does not need to be execute in nosql")
         # step 2: process each table name one by one, thus generating each symbol table according to the file paths
         # change nosql_file_paths to file_paths
         
