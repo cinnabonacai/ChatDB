@@ -1383,27 +1383,27 @@ def generate_example_query(example_value, task_number, my_target, file_paths):
     if task_number==2 or example_value == "join":
         my_type.append("join")
         if my_target== 'SQL':
-            my_input.append("generate a query in Mysql on the Relationship_product_manufacturer_data to join the Product_data table on product_id and id. Later, join the Manufacturer_data table on manufacturer_id and id.")
+            my_input.append("generate a query in Mysql on the Relationship_product_manufacturer_data to join the Product_data table on product_id and id. Later, join the Manufacturer_data table on manufacturer_id and id, then project only the id in Product_data.")
         else:
             my_input.append("aggregate a query in MongoDB on the city including the following stages: join the country collection on CountryCode and code, aliasing the results as \"Country_and_City\". Later, join the countrylanguage collection on CountryCode and CountryCode, aliasing the results as \"Country_and_Language\"")
     if task_number==2 or example_value == "group":
         my_type.append("group")
         if my_target== 'SQL':
-            my_input.append("generate a query in Mysql on the Product_data to group the table by origin in Product_data table to calculate \"totalPrice\" as the values of total price in Product_data table, and project only the origin in Product_data.")
+            my_input.append("generate a query in Mysql on the Product_data to group the table by origin in Product_data table to calculate \"totalPrice\" as the values of total price in Product_data table, then project only the origin in Product_data.")
         else:
-            my_input.append("aggregate a query in MongoDB on the city including the following stages: group by CountryCode decreasingly, and then project Name, Population in city")
+            my_input.append("aggregate a query in MongoDB on the city including the following stages: group by CountryCode decreasingly, then project Name in city and Population in city")
     if task_number==2 or example_value == "sort":
         my_type.append("sort")
         if my_target== 'SQL':
-            my_input.append("generate a query in Mysql on the Product_data to sort by price decreasingly, and project only the name in Product_data.")
+            my_input.append("generate a query in Mysql on the Product_data to sort by price decreasingly, then project only the origin in Product_data.")
         else:
-            my_input.append("aggregate a query in MongoDB on the city including the following stages: sort by CountryCode decreasingly, and then project Name, Population in city")
+            my_input.append("aggregate a query in MongoDB on the city including the following stages: sort by CountryCode decreasingly, then project Name in city and Population in city")
     if task_number==2 or example_value == "limit":
         my_type.append("limit")
         if my_target== 'SQL':
             my_input.append("generate a query in Mysql on the Product_data including the following steps: limit to 5 results, then finally project only the origin in Product_data.")
         else:
-            my_input.append("aggregate a query in MongoDB on the city including the following stages:  limit the first 10 results, and then project Name, Population in city")
+            my_input.append("aggregate a query in MongoDB on the city including the following stages:  limit the first 10 results, then project Name in city , Population in city")
     if task_number==2 or example_value == "where":
         my_type.append("where")
         if my_target== 'SQL':
@@ -1418,7 +1418,7 @@ def generate_example_query(example_value, task_number, my_target, file_paths):
             my_res+="natural language representation: \n"
             my_res+=my_input[i]+"\n"
             res1, tar1=execute_query(my_input[i], file_paths)
-            my_res+="database query: \n"
+            my_res+="\ndatabase query: \n"
             my_res+=res1+"\n"
             #my_res+="nosql: \n"
             #my_res+="natural language representation: \n"
@@ -1432,7 +1432,7 @@ def generate_example_query(example_value, task_number, my_target, file_paths):
             print(f"My result becomes:{my_res}")
             res1, tar1=execute_query(my_input[i], file_paths)
             my_res+=f"\n{my_type[i]} query: \n"
-            my_res+=res1+"\n\n"
+            my_res+=res1+"\n"
             print(f"My final result becomes {my_res}")
             #res2, tar2=execute_query(my_input2[i], nosql_file_paths)
             #my_res+="nosql query: \n"
