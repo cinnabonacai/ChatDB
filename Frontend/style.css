@@ -90,3 +90,9 @@ body {
 .file-upload-label i {
     font-size: 20px;
 }
+
+pre {
+    margin: 0;
+    white-space: pre-wrap; /* Preserve line breaks and allow wrapping */
+    font-family: monospace; /* Code-like appearance */
+}

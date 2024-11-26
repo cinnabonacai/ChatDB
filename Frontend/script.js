@@ -70,11 +70,11 @@ function sendMessage() {
             return response.json();
         })
         .then(data => {
-            
+            console.log("data is: ", data);
             responseQuery = data['result']
             
             console.log("My current responseQuery is: " + responseQuery);
-            const responseElement = document.createElement('div');
+            const responseElement = document.createElement('pre');
             responseElement.classList.add('message', 'bot-message');
             responseElement.textContent = responseQuery;
             chatbox.appendChild(responseElement);

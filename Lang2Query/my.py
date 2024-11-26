@@ -741,17 +741,17 @@ class Parser:
         return ASTNode("SINGLE_CONTENT", s_content)
 
     def field(self):
-        """解析 FIELD"""
+        """analyze FIELD"""
         token = self.consume("FIELD")
         return ASTNode("FIELD", value=token.value)
 
     def relation(self):
-        """解析 RELATION"""
+        """analyze RELATION"""
         token = self.consume("RELATION")
         return ASTNode("RELATION", value=token.value)
 
     def value(self):
-        """解析 VALUE"""
+        """analyze VALUE"""
         token = self.consume("VALUE")
         return ASTNode("VALUE", value=token.value)
 
@@ -1075,25 +1075,12 @@ class CodeGenerator:
         if ast.type == "SELECT_QUERY":
             # finish
             conditions = self.traverse_conditions(ast, for_sql=False)
-            ##projection = kwargs.get("projection")
-            ##sort = kwargs.get("sort")
-            ##skip = kwargs.get("skip", 0)
-            ##limit = kwargs.get("limit", 0)
+           
             query=conditions[0]
             print(f"search: {query}")
-            #query = {"$and": conditions} if len(conditions) > 1 else conditions[0]
+            
             mongo_query = f"db.{table_name}.find({query})"
 
-            ##if projection:
-                ##mongo_query += f", {projection}"
-            ##mongo_query += ")"
-
-            ##if sort:
-                ##mongo_query += f".sort({sort})"
-            ##if skip > 0:
-                ##mongo_query += f".skip({skip})"
-            ##if limit > 0:
-                ##mongo_query += f".limit({limit})"
             return mongo_query + ";"
         elif ast.type == "INSERT_QUERY":
             content_node = next(child for child in ast.children if child and child.type == "CONTENT")
@@ -1134,12 +1121,7 @@ class CodeGenerator:
             if condition_node:
                 conditions = self.traverse_conditions(condition_node, for_sql=False)
                 query = conditions[0]
-                #query = {"$and": conditions} if len(conditions) > 1 else conditions[0]
-                #print(f"conditions: {conditions}")
-                #print(f"query: {query}")
-
-            # Generate the MongoDB update query
-            #update_many = kwargs.get("update_many", False)  # Optional: control updateOne or updateMany
+                
             update_many = True
             update_query = f"db.{table_name}."
             update_query += "updateMany" if update_many else "updateOne"
@@ -1449,7 +1431,7 @@ def generate_example_query(example_value, task_number, my_target, file_paths):
             #my_res+=my_target+" example: \n"
             print(f"My result becomes:{my_res}")
             res1, tar1=execute_query(my_input[i], file_paths)
-            my_res+=f"{my_type[i]} query: \n"
+            my_res+=f"\n{my_type[i]} query: \n"
             my_res+=res1+"\n\n"
             print(f"My final result becomes {my_res}")
             #res2, tar2=execute_query(my_input2[i], nosql_file_paths)
@@ -1467,32 +1449,6 @@ def index():
 @app.route('/generate_query', methods=['GET'])
 def generate_result():
     try:
-    
-        # step 1: guarantee what specific file paths and the input query you need to generate
-        
-        # data = request.get_json()
-        # file_paths = data.get("file_paths", [])
-        # input_query = data.get("input_query", "")
-
-        # sample
-
-        # sql_file_paths = [
-        #    "../Database/SQL/data/Manufacturer_data.csv",
-        #    "../Database/SQL/data/Product_data.csv",
-        #    "../Database/SQL/data/Reviewer_data.csv",
-        #    "../Database/SQL/data/Warehouse_data.csv",
-        #    "../Database/SQL/data/Vendor_data.csv",
-        #    "../Database/SQL/data/Relationship_product_manufacturer_data.csv"
-        # ]
-         
-        # nosql_file_paths = [
-        #     "../Database/NoSQL/city-mongodb.json",  # 示例文件 1
-        #     "../Database/NoSQL/country-mongodb.json",                 # 示例文件 2
-        #     "../Database/NoSQL/countrylanguage-mongodb.json",             # 示例文件 3
-        #     # "../Database/NoSQL/sampleCultureProducts.json"
-        # ]
-        
-        # input_query = "I want to aggregate a query in MongoDB on the city-mongodb including the following stages: join the country-mongodb collection on CountryCode and code, aliasing the results as \"Country_and_City\". Later, join the countrylanguage-mongodb collection on CountryCode and CountryCode, aliasing the results as \"Country_and_Language\", group the documents by CountryCode to calculate \"totalPopulation\" as the values of total Population, collect \"cities\" as the values of Name, list \"languages\" as the values of unique Language, then sort by totalPopulation decreasingly, unwind cities, skip the first 10 results, limit to 5 results, last finally project only the CountryCode, totalPopulation, cities, languages."
         
         input_query = request.args.get("query")
         print("My input query at backend is: ", input_query)
