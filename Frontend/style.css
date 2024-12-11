@@ -11,6 +11,7 @@ body {
 }
 
 #chatbox {
+    overflow-y: auto;
     background-color: #2f3136;
     border: 1px solid #ddd;
     border-radius: 10px;
@@ -95,4 +96,37 @@ pre {
     margin: 0;
     white-space: pre-wrap; /* Preserve line breaks and allow wrapping */
     font-family: monospace; /* Code-like appearance */
+}
+
+/* Styles for dynamic data tables */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    background-color: #ffffff;
+    color: #000;
+    font-size: 14px;
+    text-align: left;
+}
+
+.data-table th, .data-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+.data-table th {
+    background-color: #f4f4f4;
+    font-weight: bold;
+}
+
+.data-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.data-table tr:hover {
+    background-color: #f1f1f1;
+}
+
+.table-container {
+    margin-top: 20px;
 }

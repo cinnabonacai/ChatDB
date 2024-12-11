@@ -6,6 +6,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from execute_sql import execute_sql_query
 from execute_nosql import execute_nosql_query
+import random
 
 my_table_names = []
 
@@ -252,10 +253,8 @@ def generate_separate_symbol_tables(paths: List[str]) -> str:
             db_type = "NoSQL" if db_type is None else db_type
         else:
             raise ValueError(f"Unsupported file format: {path}")
-    
     if not symbol_table:
         raise ValueError("No valid files provided to generate symbol table.")
-    
     return db_type  # 返回检测到的数据库类型
 
 '''
@@ -1382,36 +1381,62 @@ def generate_example_query(example_value, task_number, my_target, file_paths):
     print(f"example_value{example_value}")
     my_input=[]
     my_type=[]
+    #my_table_random=my_table_names[random.randint(0,len(my_table_names)-1)]
+    #myfield=symbol_table[table_name]
+    mytable=my_table_names
+    myvalue=["aaa","bbb","ccc","ddd","eee","fff","ggg","hhh","iii","jjj","kkk","lll","mmm"]
+    t0=random.choice(mytable)
+    t1=random.choice(mytable)
+    t2=random.choice(mytable)
+    while t1==t0 and len(mytable)>=2:
+        print("t1 "+t1)
+        t1=random.choice(mytable)
+    while (t2==t0 or t2==t1) and len(mytable)>=3:
+        print("t2 "+t2)
+        t2=random.choice(mytable)
     if task_number==2 or example_value == "join":
+        print("t0:"+t0)
+        print("t1: "+t1)
+        print("field: "+random.choice(list(symbol_table[t0].keys())))
+
         my_type.append("join")
         if my_target== 'SQL':
-            my_input.append("generate a query in Mysql on the Relationship_product_manufacturer_data to join the Product_data table on product_id and id. Later, join the Manufacturer_data table on manufacturer_id and id, then project only the id in Product_data.")
+            my_input.append(f"generate a query in Mysql on the {t0} to join the {t1} table on {random.choice(list(symbol_table[t0].keys()))} and {random.choice(list(symbol_table[t1].keys()))}. Later, join the {t2} table on {random.choice(list(symbol_table[t0].keys()))} and {random.choice(list(symbol_table[t2].keys()))}, then project only the {random.choice(list(symbol_table[t0].keys()))} in {t0}.")
         else:
-            my_input.append("aggregate a query in MongoDB on the city including the following stages: join the country collection on CountryCode and code, aliasing the results as \"Country_and_City\". Later, join the countrylanguage collection on CountryCode and CountryCode, aliasing the results as \"Country_and_Language\"")
+            my_input.append(f"aggregate a query in MongoDB on the {t0} including the following stages: join the {t1} collection on {random.choice(list(symbol_table[t0].keys()))} and {random.choice(list(symbol_table[t1].keys()))}, aliasing the results as \"{random.choice(myvalue)}\". Later, join the {t2} collection on {random.choice(list(symbol_table[t0].keys()))} and {random.choice(list(symbol_table[t2].keys()))}, aliasing the results as \"{random.choice(myvalue)}\"")
+        print("join")
     if task_number==2 or example_value == "group":
         my_type.append("group")
         if my_target== 'SQL':
-            my_input.append("generate a query in Mysql on the Product_data to group the table by origin in Product_data table to calculate \"totalPrice\" as the values of total price in Product_data table, then project only the origin in Product_data.")
+            #my_input.append("generate a query in Mysql on the Product_data to group the table by origin in Product_data table to calculate \"totalPrice\" as the values of total price in Product_data table, then project only the origin in Product_data.")
+            my_input.append(f"generate a query in Mysql on the {t0} to group the table by {random.choice(list(symbol_table[t0].keys()))} in {t0} table to calculate \"{random.choice(myvalue)}\" as the values of total {random.choice(list(symbol_table[t0].keys()))} in {t0} table, then project only the {random.choice(list(symbol_table[t0].keys()))} in {t0}.")
         else:
-            my_input.append("aggregate a query in MongoDB on the city including the following stages: group by CountryCode decreasingly, then project Name in city and Population in city")
+            #my_input.append("aggregate a query in MongoDB on the city including the following stages: group by CountryCode decreasingly, then project Name in city and Population in city")
+            my_input.append(f"aggregate a query in MongoDB on the {t0} including the following stages: group by {random.choice(list(symbol_table[t0].keys()))} decreasingly, then project {random.choice(list(symbol_table[t0].keys()))} in {t0} and {random.choice(list(symbol_table[t0].keys()))} in {t0}")
+        print("group")
     if task_number==2 or example_value == "sort":
         my_type.append("sort")
         if my_target== 'SQL':
-            my_input.append("generate a query in Mysql on the Product_data to sort by price decreasingly, then project only the origin in Product_data.")
+            my_input.append(f"generate a query in Mysql on the {t0} to sort by {random.choice(list(symbol_table[t0].keys()))} decreasingly, then project only the {random.choice(list(symbol_table[t0].keys()))} in {t0}.")
         else:
-            my_input.append("aggregate a query in MongoDB on the city including the following stages: sort by CountryCode decreasingly, then project Name in city and Population in city")
+            my_input.append(f"aggregate a query in MongoDB on the {t0} including the following stages: sort by {random.choice(list(symbol_table[t0].keys()))} decreasingly, then project {random.choice(list(symbol_table[t0].keys()))} in {t0} and {random.choice(list(symbol_table[t0].keys()))} in {t0}")
+        print("sort")
     if task_number==2 or example_value == "limit":
         my_type.append("limit")
+        print("t0: "+t0)
         if my_target== 'SQL':
-            my_input.append("generate a query in Mysql on the Product_data including the following steps: limit to 5 results, then finally project only the origin in Product_data.")
+            my_input.append(f"generate a query in Mysql on the {t0} including the following steps: limit to {random.randint(1, 10)} results, then finally project only the {random.choice(list(symbol_table[t0].keys()))} in {t0}.")
         else:
-            my_input.append("aggregate a query in MongoDB on the city including the following stages:  limit the first 10 results, then project Name in city , Population in city")
+            my_input.append(f"aggregate a query in MongoDB on the {t0} including the following stages:  limit the first {random.randint(1, 10)} results, then project {random.choice(list(symbol_table[t0].keys()))} in {t0}, {random.choice(list(symbol_table[t0].keys()))} in {t0}")
+        print("limit")
     if task_number==2 or example_value == "where":
         my_type.append("where")
         if my_target== 'SQL':
-            my_input.append("search for product from Product_data table whose length is greater than 70 and material is equal to \"Wood\".")
+            my_input.append(f"search for items from {t0} table whose {random.choice(list(symbol_table[t0].keys()))} is equal to \"{random.choice(myvalue)}\" and {random.choice(list(symbol_table[t0].keys()))} is equal to \"{random.choice(myvalue)}\".")
+            #my_input.append(f"search for {random.choice(list(symbol_table[t0].keys()))} from {t0} table whose {random.choice(list(symbol_table[t0].keys()))} is equal to \"{random.choice(myvalue)}\" and {random.choice(list(symbol_table[t0].keys()))} is equal to \"{random.choice(myvalue)}\".")
         else:
-            my_input.append("search for product from sampleCultureProducts table whose shopifyId is equal to \"aaa\" and vendor is equal to \"High-End Boutique Shops\"")
+            my_input.append(f"search for items from {t0} table whose {random.choice(list(symbol_table[t0].keys()))} is equal to \"{random.choice(myvalue)}\" and {random.choice(list(symbol_table[t0].keys()))} is equal to \"{random.choice(myvalue)}\"")
+            #my_input.append(f"search for {random.choice(list(symbol_table[t0].keys()))} from {t0} table whose {random.choice(list(symbol_table[t0].keys()))} is equal to \"{random.choice(myvalue)}\" and {random.choice(list(symbol_table[t0].keys()))} is equal to \"{random.choice(myvalue)}\"")
     my_res=my_target+" example: \n"
     print(f"my_input: {my_input}")
     for i in range(0, len(my_input)):
@@ -1458,16 +1483,21 @@ def generate_result():
         file_strings = request.args.get("files")
 
         file_paths = json.loads(file_strings)
-
+        
         if not input_query:
             return jsonify({"error": "The input query is required."}, 400)
-        
+
+        if not file_paths:
+            file_paths=['../Database/NoSQL/sampleCultureProducts.json', '../Database/NoSQL/city.json', '../Database/NoSQL/country.json', '../Database/NoSQL/countrylanguage.json']
+        print("file_path")
+        print(file_paths)
+        print("file_path")
         # # change the name to file_paths based on the variable file_paths
         # if not nosql_file_paths:
         #     return jsonify({"error": "The file paths are required."}, 400)
         
-        if not file_paths:
-            return jsonify({"error": "The file paths are required."}, 400)
+        #if not file_paths:
+            #return jsonify({"error": "The file paths are required."}, 400)
         
         # if not file_paths:
         #     return jsonify({"error": "The file paths are required."}, 400)
@@ -1485,7 +1515,8 @@ def generate_result():
                 data_collected = {
                     "target": "",
                     "result": exe_result,
-                    "ast": ""
+                    "ast": "",
+                    "type": "data"
                 }
                 print("My data collected becomes: ", data_collected)
                 return jsonify(data_collected)
@@ -1507,7 +1538,8 @@ def generate_result():
                 data_collected = {
                     "target": "",
                     "result": json.dumps(exe_result),
-                    "ast": ""
+                    "ast": "",
+                    "type": "data"
                 }
                 print("My data collected becomes: ", data_collected)
                 return jsonify(data_collected)
@@ -1564,7 +1596,8 @@ def generate_result():
             data_collected = {
                 "target": "",
                 "result": repr(example_tables),
-                "ast": ""
+                "ast": "",
+                "type": "data"
             }
             print("My data collected becomes: ", data_collected)
             return jsonify(data_collected)
@@ -1572,7 +1605,6 @@ def generate_result():
             if len(tokens)==1:
                 print("task 2")
                 res=generate_example_query("", 2, target, file_paths)
-
             else:
                 print("task 3")
                 if tokens[1].type!="AGGREGATION_OPERATOR":
@@ -1583,7 +1615,8 @@ def generate_result():
             data_collected = {
                 "target": "",
                 "result": res,
-                "ast": ""
+                "ast": "",
+                "type": "query"
             }
             
             print("My data collected becomes: ", data_collected)
@@ -1626,7 +1659,8 @@ def generate_result():
         data_collected = {
             "target": target,
             "result": result,
-            "ast": repr(ast)
+            "ast": repr(ast),
+            "type": "query"
         }
         print("My data collected becomes: ", data_collected)
         return jsonify(data_collected)
