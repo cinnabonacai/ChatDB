@@ -35,6 +35,7 @@ def execute_nosql_query(nosql_query, json_file_list):
         # Parse and execute the NoSQL query
         # Assuming the query is written as valid Python code (e.g., "db.collection_name.aggregate([...])")
         result = eval(nosql_query, {"db": db})
+        print("result: ", result)
         return True, list(result)  # Convert cursor to list for easier handling
 
     except Exception as err:

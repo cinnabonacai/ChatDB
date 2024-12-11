@@ -847,7 +847,8 @@ class SemanticAnalyzer:
 
         # If both of them do not match, a semantic error will be raised.
         if not self.check_type_match(expected_type, value):
-            raise SemanticError(f"Value '{value}' does not match the expected type '{expected_type}' for field '{field}' in '{self.target}'.")
+            #raise SemanticError(f"Value '{value}' does not match the expected type '{expected_type}' for field '{field}' in '{self.target}'.")
+            print(f"Value '{value}' does not match the expected type '{expected_type}' for field '{field}' in '{self.target}'.")
 
         # relational operator
         relation = relation_node.value
@@ -1068,7 +1069,7 @@ class CodeGenerator:
     def generate_mongo(self, ast):
         print("my generate ast tree: ", ast)
         if ast.type == "AGGREGATION_PIPELINE":
-            return f"db.{ast.value}.aggregate({ast.children});"
+            return f"db.{ast.value}.aggregate({ast.children})"
         
         
         table_name=ast.children[1].value
@@ -1082,7 +1083,7 @@ class CodeGenerator:
             
             mongo_query = f"db.{table_name}.find({query})"
 
-            return mongo_query + ";"
+            return mongo_query
         elif ast.type == "INSERT_QUERY":
             content_node = next(child for child in ast.children if child and child.type == "CONTENT")
             # finish
@@ -1093,7 +1094,7 @@ class CodeGenerator:
                 query = contents
             insert_query = f"db.{table_name}."
             insert_query += "insertMany" if len(query)>1 else "insertOne"
-            insert_query += f"({query});"
+            insert_query += f"({query})"
             return insert_query
             '''
             documents = kwargs.get("documents", [])
@@ -1126,7 +1127,7 @@ class CodeGenerator:
             update_many = True
             update_query = f"db.{table_name}."
             update_query += "updateMany" if update_many else "updateOne"
-            update_query += f"({query}, {{'$set': {updates}}});"
+            update_query += f"({query}, {{'$set': {updates}}})"
             #update_query += f"({query}, {'$set': {updates}});"
             return update_query
         
@@ -1144,7 +1145,7 @@ class CodeGenerator:
             delete_query = f"db.{table_name}."
             #delete_query += "deleteMany" if delete_many else "deleteOne"
             delete_query += "deleteMany"
-            delete_query += f"({query};"
+            delete_query += f"({query}"
             #delete_query += f"({json.dumps(query)};"
             return delete_query
         
@@ -1513,10 +1514,11 @@ def generate_result():
                 for row in exe_result:
                     print(row)
                 data_collected = {
-                    "target": "",
+                    "target": "SQL",
+                    #"result": json.dumps(exe_result),
                     "result": exe_result,
                     "ast": "",
-                    "type": "data"
+                    "type": "execute"
                 }
                 print("My data collected becomes: ", data_collected)
                 return jsonify(data_collected)
@@ -1531,15 +1533,19 @@ def generate_result():
             print("Extracted query:", extracted_query)
             #success, exe_result = execute_nosql_query(extracted_query, file_paths)
             success, exe_result = execute_nosql_query(extracted_query, [])
+            print("my res: ",success, exe_result)
             if success:
                 print("Query executed successfully:")
                 for doc in exe_result:
                     print(doc)
+                print("res: ", exe_result)
+                #print("json: ", json.dumps(exe_result))
                 data_collected = {
-                    "target": "",
-                    "result": json.dumps(exe_result),
+                    "target": "NOSQL",
+                    #"result": json.dumps(exe_result),
+                    "result": exe_result,
                     "ast": "",
-                    "type": "data"
+                    "type": "execute"
                 }
                 print("My data collected becomes: ", data_collected)
                 return jsonify(data_collected)
@@ -1594,12 +1600,14 @@ def generate_result():
             except ValueError as e:
                 return jsonify({"error": f"Error loading example from table: {e}"}, 400)
             data_collected = {
-                "target": "",
-                "result": repr(example_tables),
+                "target": target,
+                "result": json.dumps(example_tables),
+                #"result": repr(example_tables),
                 "ast": "",
                 "type": "data"
             }
             print("My data collected becomes: ", data_collected)
+            #print("my return", jsonify(data_collected))
             return jsonify(data_collected)
         elif tokens[0].type == "Example":
             if len(tokens)==1:
@@ -1613,7 +1621,7 @@ def generate_result():
                 res=generate_example_query(example_value, 3, target, file_paths)
             
             data_collected = {
-                "target": "",
+                "target": target,
                 "result": res,
                 "ast": "",
                 "type": "query"
