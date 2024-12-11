@@ -22,7 +22,6 @@ function handleFileUpload() {
 
 /* Function to dynamically render data as a table */
 function renderTable(data) {
-    //print(data)
     const tableContainer = document.createElement('div');
     tableContainer.classList.add('table-container');
 
@@ -57,9 +56,77 @@ function renderTable(data) {
             });
             table.appendChild(dataRow);
         });
+
         tableContainer.appendChild(table);
     });
 
+    chatbox.appendChild(tableContainer);
+}
+
+/* Function to dynamically render NoSQL data as a table */
+function renderNoSQLTable(data) {
+    const tableContainer = document.createElement('div');
+    tableContainer.classList.add('table-container');
+
+    const table = document.createElement('table');
+    table.classList.add('data-table');
+
+    // Determine headers dynamically based on keys in the first object
+    const headers = Object.keys(data[0]);
+    const headerRow = document.createElement('tr');
+    headers.forEach((header) => {
+        const headerCell = document.createElement('th');
+        headerCell.textContent = header;
+        headerRow.appendChild(headerCell);
+    });
+    table.appendChild(headerRow);
+
+    // Populate rows
+    data.forEach((row) => {
+        const dataRow = document.createElement('tr');
+        headers.forEach((header) => {
+            const dataCell = document.createElement('td');
+            const value = header === '_id' && typeof row[header] === 'object' ? row[header].ID : row[header];
+            dataCell.textContent = value;
+            dataRow.appendChild(dataCell);
+        });
+        table.appendChild(dataRow);
+    });
+
+    tableContainer.appendChild(table);
+    chatbox.appendChild(tableContainer);
+}
+
+/* Function to dynamically render SQL data as a table */
+function renderSQLTable(data) {
+    const tableContainer = document.createElement('div');
+    tableContainer.classList.add('table-container');
+
+    const table = document.createElement('table');
+    table.classList.add('data-table');
+
+    // Determine headers dynamically based on the first row of data
+    const headers = data.length > 0 ? Object.keys(data[0]).map((_, index) => `Column ${index + 1}`) : [];
+    const headerRow = document.createElement('tr');
+    headers.forEach((header) => {
+        const headerCell = document.createElement('th');
+        headerCell.textContent = header;
+        headerRow.appendChild(headerCell);
+    });
+    table.appendChild(headerRow);
+
+    // Populate rows
+    data.forEach((row) => {
+        const dataRow = document.createElement('tr');
+        row.forEach((cell) => {
+            const dataCell = document.createElement('td');
+            dataCell.textContent = cell;
+            dataRow.appendChild(dataCell);
+        });
+        table.appendChild(dataRow);
+    });
+
+    tableContainer.appendChild(table);
     chatbox.appendChild(tableContainer);
 }
 
@@ -90,7 +157,7 @@ function sendMessage() {
 
     // (6) Check for files
     if (attachedFiles.length === 0 && lastAttachedFiles.length > 0) {
-        alert('No files uploaded. Using the previously uploaded files.');
+        //alert('No files uploaded. Using the previously uploaded files.');
         attachedFiles = [...lastAttachedFiles];
     } else if (attachedFiles.length === 0 && lastAttachedFiles.length === 0) {
         alert('No files uploaded and no previous files available.');
@@ -118,17 +185,28 @@ function sendMessage() {
             responseElement.textContent = data.result;
             chatbox.appendChild(responseElement);
         } else if (data.type === 'data') {
-            const responseElement = document.createElement('pre');
-            responseElement.classList.add('message', 'bot-message');
-            responseElement.textContent = data.result;
-            chatbox.appendChild(responseElement);
             // If the result is data, parse it and render it as a table
-            //try {
-                //const parsedData = JSON.parse(data.result);
-                //renderTable(parsedData);
-            //} catch (error) {
-                //console.error('Failed to parse data:', error);
-            //}
+            try {
+                const parsedData = JSON.parse(data.result);
+                renderTable(parsedData);
+            } catch (error) {
+                console.error('Failed to parse data:', error);
+            }
+        } else if (data.type === 'execute' && data.target === 'NOSQL') {
+            try {
+                //const parsedData = JSON.parse(data.result.replace(/'/g, '"'));
+                const parsedData = Array.isArray(data.result) ? data.result : JSON.parse(data.result);
+                renderNoSQLTable(parsedData);
+            } catch (error) {
+                console.error('Failed to parse NoSQL data:', error);
+            }
+        } else if (data.type === 'execute' && data.target === 'SQL') {
+            try {
+                const parsedData = Array.isArray(data.result) ? data.result : JSON.parse(data.result);
+                renderSQLTable(parsedData);
+            } catch (error) {
+                console.error('Failed to parse SQL data:', error);
+            }
         }
 
         // Save uploaded files for future use
