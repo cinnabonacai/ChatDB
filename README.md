@@ -12,7 +12,6 @@ Database
         Products.js //Schema
       Routes
         Products.js //Server
-      
     SQL
       data
          Manufacturer_data.csv
