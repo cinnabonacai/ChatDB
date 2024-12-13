@@ -1489,7 +1489,7 @@ def generate_result():
             return jsonify({"error": "The input query is required."}, 400)
 
         if not file_paths:
-            file_paths=['../Database/NoSQL/sampleCultureProducts.json', '../Database/NoSQL/city.json', '../Database/NoSQL/country.json', '../Database/NoSQL/countrylanguage.json']
+            file_paths=['../Database/NoSQL/Data/sampleCultureProducts.json', '../Database/NoSQL/Data/city.json', '../Database/NoSQL/Data/country.json', '../Database/NoSQL/Data/countrylanguage.json']
         print("file_path")
         print(file_paths)
         print("file_path")
