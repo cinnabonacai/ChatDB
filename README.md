@@ -29,13 +29,11 @@ Database
       backend_create_table.go  //Schema
       backend_insert_data.go  //Schema
       backend_crud.py // Server
-
 Frontend
 
     index.html
     script.js
     style.css
-
 Backend
 
    my.py
