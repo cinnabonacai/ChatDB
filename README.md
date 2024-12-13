@@ -2,6 +2,7 @@
 This project mainly aims to emphasize the application of ChatDB. It is mainly comprised of three folders: **Database**, **Frontend**, and **Backend**, where each of them is conducive to the development regarding full-stack projects. To better list what files are stored in each folder, it can be interpreted as below for final verificiation
 
 Database
+
     NoSQL
       data 
         city.json
@@ -12,6 +13,7 @@ Database
         Products.js //Schema
       Routes
         Products.js //Server
+        
     SQL
       data
          Manufacturer_data.csv
