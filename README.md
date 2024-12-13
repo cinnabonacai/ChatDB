@@ -31,11 +31,13 @@ Database
       backend_crud.py // Server
 
 Frontend
+
     index.html
     script.js
     style.css
 
 Backend
+
    my.py
    execute_nosql.py
    execute_sql.py
